@@ -12,7 +12,7 @@ $(function() {
     eCanvas.appendChild(eSvg);
     
     var center = new Punt(400, 400);
-    var board = new Board(eSvg, center, 3, 32);
+    var board = new Board(eSvg, center, 4, 24);
     board.build();
     board.defs();
     board.draw();
@@ -48,7 +48,7 @@ function Hex(id, xid, yid, center, side){
     this.yid = yid;
     this.rune = "";
     this.runeSet = null;
-    this.rarity = 0;
+    this.tier = 1;
     this.connections = [];
     this.directions = [];
     this.dam = 0;
@@ -87,7 +87,7 @@ Hex.prototype.pattern = function() {
     var iRune = document.createElementNS('http://www.w3.org/2000/svg', 'image');
     iRune.setAttribute("width", this.side * 3.6);
     iRune.setAttribute("height", this.side * 3.6);
-    iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + this.rune + + this.rarity + '.png');
+    iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + this.rune + this.tier + '.png');
     this.pattern.appendChild(iRune);
     
     if (this.connections.length > 0 || this.rune === "heart") {
@@ -119,7 +119,7 @@ function Board(canvas, center, radius, side) {
     this.height = Math.sqrt(3 * this.side * this.side);
     this.hexes = [];
     this.runes = [];
-    this.runeStats = [1, 2, 1.5, 15];
+    this.runeStats = [1, 1, 1, 10];
 };
 Board.prototype.defs = function() {
     this.defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -196,6 +196,7 @@ Board.prototype.rune = function() {
         this.hexes[i].cd = 0;
         if (this.hexes[i].xid === this.radius && this.hexes[i].yid === this.radius) {
             this.hexes[i].rune = "heart";
+            this.hexes[i].tier = 1;
         }
         if (this.hexes[i].rune !== "") {
             this.defs.appendChild(this.hexes[i].pattern());
@@ -204,16 +205,16 @@ Board.prototype.rune = function() {
             }
             switch (this.hexes[i].runeSet) {
                 case 0:
-                    this.hexes[i].dam = this.runeStats[0];
+                    this.hexes[i].dam = this.runeStats[0] * this.hexes[i].tier;
                     break;
                 case 1:
-                    this.hexes[i].as = this.runeStats[1];
+                    this.hexes[i].as = this.runeStats[1] * this.hexes[i].tier;
                     break;
                 case 2:
-                    this.hexes[i].cc = this.runeStats[2];
+                    this.hexes[i].cc = this.runeStats[2] * this.hexes[i].tier;
                     break;
                 case 3:
-                    this.hexes[i].cd = this.runeStats[3];
+                    this.hexes[i].cd = this.runeStats[3] * this.hexes[i].tier;
                     break;
             }
         }
@@ -230,29 +231,24 @@ Board.prototype.dps = function(player) {
         var desc;
         switch (hex.connections.length) {
             case 0: asc = 0; break;
-            case 1: asc = 0.2; desc = 1.2; break;
-            case 2: asc = 0.4; desc = 1; break;
-            case 3: asc = 0.6; desc = 0.8; break;
-            case 4: asc = 0.8; desc = 0.6; break;
-            case 5: asc = 1; desc = 0.4; break;
-            case 6: asc = 1.2; desc = 0.2; break;
+            case 1: asc = 0.4; desc = 2.4; break;
+            case 2: asc = 0.8; desc = 2; break;
+            case 3: asc = 1.2; desc = 1.6; break;
+            case 4: asc = 1.6; desc = 1.2; break;
+            case 5: asc = 2; desc = 0.8; break;
+            case 6: asc = 2.4; desc = 0.4; break;
         }
         this.dam += hex.dam * asc;
         this.as += hex.as * asc;
         this.cc += hex.cc * desc;
         this.cd += hex.cd * desc;
     }
-    var dam = player.dam + (this.dam / 100);
-    var as = player.as + (this.as / 100);
+    var dam = player.dam * ((100 + this.dam) / 100);
+    var as = player.as * ((100 + this.as) / 100);
     var cc = player.cc + this.cc;
     var cd = player.cd + this.cd;
-    var playerDps = (player.dam * player.cc * (100 + player.cd) / 10000 + player.dam * (100 - player.cc) / 100) * player.as;
-    var totalDps = (dam * cc * (100 + cd) / 10000 + dam * (100 - cc) / 100) * as;
-    var diff = totalDps / playerDps;
-//    diff = diff * diff * diff * diff * diff * diff * diff * diff * diff * diff;
-//    diff = diff - 1;
-//    var total = diff * (this.runes.length + 1);
-    return "" + diff * diff + "";
+    var totalDps = (dam * (cc * (100 + cd) / 10000) + dam * ((100 - cc) / 100)) * as;
+    return Math.round(Math.pow(totalDps / 10, 10)) / 100;
 };
 Board.prototype.showPlayer = function(element, player) {
     element.empty();
@@ -265,10 +261,10 @@ Board.prototype.showPlayer = function(element, player) {
     var eCd = $('<p>Player Critical Damage: ' + player.cd + '</p>');
     var eDps = $('<p>Total DPS: ' + this.dps(player) + '</p>');
     var eRunes = $('<p>Runes: ' + this.runes + '</p>');
-    var eBoardDam = $('<p>Board Dam: ' + this.dam + '</p>');
-    var eBoardAs = $('<p>Board As: ' + this.as + '</p>');
-    var eBoardCc = $('<p>Board CC: ' + this.cc + '</p>');
-    var Cd = $('<p>Board CD: ' + this.cd + '</p>');
+    var eBoardDam = $('<p>Total Damage: ' + player.dam * ((100 + this.dam) / 100) + '</p>');
+    var eBoardAs = $('<p>Total Attack Speed: ' + player.as * ((100 + this.as) / 100) + ' / second</p>');
+    var eBoardCc = $('<p>Total Critical Chance: ' + parseFloat(player.cc + this.cc) + '</p>');
+    var Cd = $('<p>Total Critical Damage: ' + parseInt(player.cd + this.cd) + '</p>');
 
     element.append(eHealth)
         .append(eGold)
@@ -287,9 +283,10 @@ Board.prototype.showPlayer = function(element, player) {
 Board.prototype.showHex = function(playerel, hexel, player, hex) {
     var me = this;
     var runes = ["dam", "as", "cc", "cd", "range", "gold"];
-    var eRune = $('<p>Hex Rune: ' + hex.rune + '</p>');
+    var eRune = $('<p>Rune: ' + hex.rune + '</p>');
+    var eTier = $('<p>Tier: ' + hex.tier + '</p>');
     hexel.empty();
-    hexel.append(eRune);
+    hexel.append(eRune).append(eTier);
     if (hex.rune === "") {
         var eDamage = $('<p><button type="button" id="damButton">Buy Damage Rune</button></p>');
         var eAs = $('<p><button type="button" id="asButton">Buy Attack Speed Rune</button></p>');
@@ -308,7 +305,7 @@ Board.prototype.showHex = function(playerel, hexel, player, hex) {
             me.unrune();
             me.connect();
             me.rune();
-            player.gold -= 100;
+//            player.gold -= 100;
             me.showPlayer(playerel, player);
             me.showHex(playerel, hexel, player, hex)
         });
@@ -318,7 +315,7 @@ Board.prototype.showHex = function(playerel, hexel, player, hex) {
             me.unrune();
             me.connect();
             me.rune();
-            player.gold -= 100;
+//            player.gold -= 100;
             me.showPlayer(playerel, player);
             me.showHex(playerel, hexel, player, hex)
         });
@@ -328,7 +325,7 @@ Board.prototype.showHex = function(playerel, hexel, player, hex) {
             me.unrune();
             me.connect();
             me.rune();
-            player.gold -= 150;
+//            player.gold -= 150;
             me.showPlayer(playerel, player);
             me.showHex(playerel, hexel, player, hex)
         });
@@ -338,21 +335,53 @@ Board.prototype.showHex = function(playerel, hexel, player, hex) {
             me.unrune();
             me.connect();
             me.rune();
-            player.gold -= 150;
+//            player.gold -= 150;
             me.showPlayer(playerel, player);
             me.showHex(playerel, hexel, player, hex)
         });
     }
     else {
-        
+//        var eSell = $('<p><button type="button" id="sellButton">Sell Rune</button></p>');
+        var eUpgrade = $('<p><button type="button" id="upgradeButton">Upgrade Rune</button></p>');
+//        hexel.append(eSell);
+//        $(eSell).click(function() {
+//            hex.rune = "";
+//            hex.tier = 1;
+//            this.dam = 0;
+//            this.as = 0;
+//            this.cc = 0;
+//            this.cd = 0;
+//            this.connections = [];
+//            this.directions = [];
+//            this.setAttribute('fill', 'black');
+//            hex.runeSet = null;
+//            me.unrune();
+//            me.connect();
+//            me.rune();
+////            player.gold -= 150;
+//            me.showPlayer(playerel, player);
+//            me.showHex(playerel, hexel, player, hex)
+//        });
+        if (hex.tier < 4) {
+            hexel.append(eUpgrade);
+            $(eUpgrade).click(function() {
+                hex.tier += 1;
+                me.unrune();
+                me.connect();
+                me.rune();
+    //            player.gold -= 150;
+                me.showPlayer(playerel, player);
+                me.showHex(playerel, hexel, player, hex)
+            });
+        }
     }
-}
+};
 
 function Player() {
     this.health = 100;
     this.radius = 100;
     this.gold = 1000;
-    this.dam = 1;
+    this.dam = 10;
     this.cc = 5;
     this.cd = 50;
     this.as = 2;
