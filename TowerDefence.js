@@ -5,39 +5,136 @@ $(function() {
     var ePlayer = $('#playerStats');
     var eHex = $('#hexStats');
     
-    var eSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    eSvg.setAttributeNS('http://www.w3.org/2000/svg','xlink','http://www.w3.org/1999/xlink');
-    eSvg.setAttributeNS(null, "width", 800);
-    eSvg.setAttributeNS(null, "height", 800);
-    eCanvas.appendChild(eSvg);
-    
-    var center = new Punt(400, 400);
-    var board = new Board(eSvg, center, 4, 24);
-    board.build();
-    board.defs();
-    board.draw();
-    board.rune();
+    var oGame = new Game(eCanvas, ePlayer, eHex);
+    oGame.init();
 
     $("polygon").on("click", function() {
         var id = parseInt($(this).attr("id"));
-        var hex = board.hexes[id];
-        if (id !== board.heart) {
+        var hex = oGame.board.hexes[id];
+        if (id !== oGame.board.heart) {
             eHex.empty();
-            board.showHex(ePlayer, eHex, hex);
+            oGame.board.showHex(oGame, hex);
         }
-        if (id === board.heart) {
+        if (id === oGame.board.heart) {
             eHex.empty();
-            board.showPlayer(ePlayer);
+            oGame.showPlayer();
         }
     });
 });
 
-function Game() {
-    this.board = new Board;
+function Game(eCanvas, ePlayer, eHex) {
+    this.eCanvas = eCanvas;
+    this.ePlayer = ePlayer;
+    this.eHex = eHex;
     this.player = new Player;
 }
+Game.prototype.svg = function() {
+    this.eSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    this.eSvg.setAttributeNS('http://www.w3.org/2000/svg','xlink','http://www.w3.org/1999/xlink');
+    this.eSvg.setAttributeNS(null, "width", 800);
+    this.eSvg.setAttributeNS(null, "height", 800);
+};
+Game.prototype.defs = function() {
+    this.eDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+};
+Game.prototype.build = function() {
+    var x = this.center.x - this.board.height * (this.board.radius + this.board.radius);
+    var y = this.center.y - this.board.side * this.board.radius * 3; 
+    for (var j = 0; j <= this.board.radius * 2; j++) {
+        var offSet = Math.abs(j - this.board.radius);
+        var xId = 0;
+        if(j - this.board.radius > 0) {
+            xId = j - this.board.radius;
+        }
+        for (var i = 0; i <= this.board.radius * 2 - offSet; i++) {
+            var punt = new Punt(x + this.board.height * (2 * i + offSet), y + 3 * j * this.board.side);
+            var hex = new Hex(this.board.hexes.length, i + xId, j, punt, this.board.side);
+            if (i === this.board.radius && j === this.board.radius) {
+                this.board.heart = this.board.hexes.length;
+            }
+            this.board.hexes.push(hex);
+        }
+    }
+};
+Game.prototype.draw = function() {
+    for (var i = 0; i < this.board.hexes.length; i++ ) {
+        this.eSvg.appendChild(this.board.hexes[i].element());
+    }
+};
+Game.prototype.rune = function() {
+    this.board.runes = [];
+    for (var i = 0; i < this.board.hexes.length; i++ ) {
+        this.board.hexes[i].dam = 0;
+        this.board.hexes[i].as = 0;
+        this.board.hexes[i].cc = 0;
+        this.board.hexes[i].cd = 0;
+        if (this.board.hexes[i].xid === this.board.radius && this.board.hexes[i].yid === this.board.radius) {
+            this.board.hexes[i].rune = "heart";
+            this.board.hexes[i].tier = 1;
+        }
+        if (this.board.hexes[i].rune !== "") {
+            this.eDefs.appendChild(this.board.hexes[i].pattern());
+            if (this.board.hexes[i].rune !== "heart") {
+                this.board.runes.push(i);
+            }
+            switch (this.board.hexes[i].runeSet) {
+                case 0:
+                    this.board.hexes[i].dam = this.board.runeStats[0] * this.board.hexes[i].tier;
+                    break;
+                case 1:
+                    this.board.hexes[i].as = this.board.runeStats[1] * this.board.hexes[i].tier;
+                    break;
+                case 2:
+                    this.board.hexes[i].cc = this.board.runeStats[2] * this.board.hexes[i].tier;
+                    break;
+                case 3:
+                    this.board.hexes[i].cd = this.board.runeStats[3] * this.board.hexes[i].tier;
+                    break;
+            }
+        }
+    }
+};
+Game.prototype.showPlayer = function() {
+    this.ePlayer.empty();
+    var eHealth = $('<p>Player Health: ' + this.player.health + '</p>');
+    var eGold = $('<p>Player Gold: ' + this.player.gold + '</p>');
+    var eRadius = $('<p>Player Range: ' + this.player.radius + '</p>');
+    var eDamage = $('<p>Player Damage: ' + this.player.dam + '</p>');
+    var eAs = $('<p>Player Attack Speed: ' + this.player.as + ' / second</p>');
+    var eCc = $('<p>Player Critical Chance: ' + this.player.cc + '</p>');
+    var eCd = $('<p>Player Critical Damage: ' + this.player.cd + '</p>');
+    var eDps = $('<p>Total DPS: ' + this.board.dps(this) + '</p>');
+    var eRunes = $('<p>Runes: ' + this.board.runes + '</p>');
+    var eBoardDam = $('<p>Total Damage: ' + this.player.dam * ((100 + this.board.dam) / 100) + '</p>');
+    var eBoardAs = $('<p>Total Attack Speed: ' + this.player.as * ((100 + this.board.as) / 100) + ' / second</p>');
+    var eBoardCc = $('<p>Total Critical Chance: ' + parseFloat(this.player.cc + this.board.cc) + '</p>');
+    var Cd = $('<p>Total Critical Damage: ' + parseInt(this.player.cd + this.board.cd) + '</p>');
+
+    this.ePlayer.append(eHealth)
+        .append(eGold)
+        .append(eRadius)
+        .append(eDamage)
+        .append(eAs)
+        .append(eCc)
+        .append(eCd)
+        .append(eDps)
+        .append(eRunes)
+        .append(eBoardDam)
+        .append(eBoardAs)
+        .append(eBoardCc)
+        .append(Cd);
+};
 Game.prototype.init = function() {
+    this.svg();
+    this.defs();
+    this.eCanvas.appendChild(this.eSvg);
+    this.eSvg.appendChild(this.eDefs);
     
+    this.center = new Punt(400, 400);
+    this.board = new Board(this.eSvg, this.center, 4, 24);
+    this.build();
+    this.draw();
+    this.rune();
 };
 
 function Punt(x, y) {
@@ -125,9 +222,7 @@ function Board(canvas, center, radius, side) {
     this.side = side;
     this.height = Math.sqrt(3 * this.side * this.side);
     this.hexes = [];
-    this.runes = [];
     this.runeStats = [1, 1, 1, 10];
-    this.player = new Player();
 };
 Board.prototype.defs = function() {
     this.defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -195,7 +290,7 @@ Board.prototype.unrune = function() {
         $('#pattern' + this.hexes[i].id).remove();
     }
 };
-Board.prototype.rune = function() {
+Board.prototype.rune = function(game) {
     this.runes = [];
     for (var i = 0; i < this.hexes.length; i++ ) {
         this.hexes[i].dam = 0;
@@ -207,7 +302,7 @@ Board.prototype.rune = function() {
             this.hexes[i].tier = 1;
         }
         if (this.hexes[i].rune !== "") {
-            this.defs.appendChild(this.hexes[i].pattern());
+            game.eDefs.appendChild(this.hexes[i].pattern());
             if (this.hexes[i].rune !== "heart") {
                 this.runes.push(i);
             }
@@ -228,7 +323,7 @@ Board.prototype.rune = function() {
         }
     }
 };
-Board.prototype.dps = function() {
+Board.prototype.dps = function(game) {
     this.dam = 0;
     this.as = 0;
     this.cc = 0;
@@ -251,30 +346,30 @@ Board.prototype.dps = function() {
         this.cc += hex.cc * desc;
         this.cd += hex.cd * desc;
     }
-    var dam = this.player.dam * ((100 + this.dam) / 100);
-    var as = this.player.as * ((100 + this.as) / 100);
-    var cc = this.player.cc + this.cc;
-    var cd = this.player.cd + this.cd;
+    var dam = game.player.dam * ((100 + this.dam) / 100);
+    var as = game.player.as * ((100 + this.as) / 100);
+    var cc = game.player.cc + this.cc;
+    var cd = game.player.cd + this.cd;
     var totalDps = (dam * (cc * (100 + cd) / 10000) + dam * ((100 - cc) / 100)) * as;
     return Math.round(Math.pow(totalDps / 10, 10)) / 100;
 };
-Board.prototype.showPlayer = function(element) {
-    element.empty();
-    var eHealth = $('<p>Player Health: ' + this.player.health + '</p>');
-    var eGold = $('<p>Player Gold: ' + this.player.gold + '</p>');
-    var eRadius = $('<p>Player Range: ' + this.player.radius + '</p>');
-    var eDamage = $('<p>Player Damage: ' + this.player.dam + '</p>');
-    var eAs = $('<p>Player Attack Speed: ' + this.player.as + ' / second</p>');
-    var eCc = $('<p>Player Critical Chance: ' + this.player.cc + '</p>');
-    var eCd = $('<p>Player Critical Damage: ' + this.player.cd + '</p>');
-    var eDps = $('<p>Total DPS: ' + this.dps() + '</p>');
+Board.prototype.showPlayer = function(game) {
+    game.ePlayer.empty();
+    var eHealth = $('<p>Player Health: ' + game.player.health + '</p>');
+    var eGold = $('<p>Player Gold: ' + game.player.gold + '</p>');
+    var eRadius = $('<p>Player Range: ' + game.player.radius + '</p>');
+    var eDamage = $('<p>Player Damage: ' + game.player.dam + '</p>');
+    var eAs = $('<p>Player Attack Speed: ' + game.player.as + ' / second</p>');
+    var eCc = $('<p>Player Critical Chance: ' + game.player.cc + '</p>');
+    var eCd = $('<p>Player Critical Damage: ' + game.player.cd + '</p>');
+    var eDps = $('<p>Total DPS: ' + this.dps(game) + '</p>');
     var eRunes = $('<p>Runes: ' + this.runes + '</p>');
-    var eBoardDam = $('<p>Total Damage: ' + this.player.dam * ((100 + this.dam) / 100) + '</p>');
-    var eBoardAs = $('<p>Total Attack Speed: ' + this.player.as * ((100 + this.as) / 100) + ' / second</p>');
-    var eBoardCc = $('<p>Total Critical Chance: ' + parseFloat(this.player.cc + this.cc) + '</p>');
-    var Cd = $('<p>Total Critical Damage: ' + parseInt(this.player.cd + this.cd) + '</p>');
+    var eBoardDam = $('<p>Total Damage: ' + game.player.dam * ((100 + this.dam) / 100) + '</p>');
+    var eBoardAs = $('<p>Total Attack Speed: ' + game.player.as * ((100 + this.as) / 100) + ' / second</p>');
+    var eBoardCc = $('<p>Total Critical Chance: ' + parseFloat(game.player.cc + this.cc) + '</p>');
+    var Cd = $('<p>Total Critical Damage: ' + parseInt(game.player.cd + this.cd) + '</p>');
 
-    element.append(eHealth)
+    game.ePlayer.append(eHealth)
         .append(eGold)
         .append(eRadius)
         .append(eDamage)
@@ -288,23 +383,23 @@ Board.prototype.showPlayer = function(element) {
         .append(eBoardCc)
         .append(Cd);
 };
-Board.prototype.showHex = function(playerel, hexel, hex) {
+Board.prototype.showHex = function(game, hex) {
     var me = this;
     var runes = ["dam", "as", "cc", "cd", "range", "gold"];
     var eRune = $('<p>Rune: ' + hex.rune + '</p>');
     var eTier = $('<p>Tier: ' + hex.tier + '</p>');
-    hexel.empty();
-    hexel.append(eRune).append(eTier);
+    game.eHex.empty();
+    game.eHex.append(eRune).append(eTier);
     if (hex.rune === "") {
         var eDamage = $('<p><button type="button" id="damButton">Buy Damage Rune</button></p>');
         var eAs = $('<p><button type="button" id="asButton">Buy Attack Speed Rune</button></p>');
         var eCc = $('<p><button type="button" id="ccButton">Buy Critical Chance Rune</button></p>');
         var eCd = $('<p><button type="button" id="cdButton">Buy Critical Damage Rune</button></p>');
-        if (me.player.gold >= 100) {
-            hexel.append(eDamage).append(eAs);
+        if (game.player.gold >= 100) {
+            game.eHex.append(eDamage).append(eAs);
         }
-        if (me.player.gold >= 150) {
-            hexel.append(eCc).append(eCd);
+        if (game.player.gold >= 150) {
+            game.eHex.append(eCc).append(eCd);
         }
 
         $(eDamage).click(function() {
@@ -312,40 +407,40 @@ Board.prototype.showHex = function(playerel, hexel, hex) {
             hex.runeSet = 0;
             me.unrune();
             me.connect();
-            me.rune();
+            me.rune(game);
 //            player.gold -= 100;
-            me.showPlayer(playerel);
-            me.showHex(playerel, hexel, hex);
+            me.showPlayer(game);
+            me.showHex(game, hex);
         });
         $(eAs).click(function() {
             hex.rune = runes[1];
             hex.runeSet = 1;
             me.unrune();
             me.connect();
-            me.rune();
+            me.rune(game);
 //            player.gold -= 100;
-            me.showPlayer(playerel);
-            me.showHex(playerel, hexel, hex);
+            me.showPlayer(game);
+            me.showHex(game, hex);
         });
         $(eCc).click(function() {
             hex.rune = runes[2];
             hex.runeSet = 2;
             me.unrune();
             me.connect();
-            me.rune();
+            me.rune(game);
 //            player.gold -= 150;
-            me.showPlayer(playerel);
-            me.showHex(playerel, hexel, hex);
+            me.showPlayer(game);
+            me.showHex(game, hex);
         });
         $(eCd).click(function() {
             hex.rune = runes[3];
             hex.runeSet = 3;
             me.unrune();
             me.connect();
-            me.rune();
+            me.rune(game);
 //            player.gold -= 150;
-            me.showPlayer(playerel);
-            me.showHex(playerel, hexel, hex);
+            me.showPlayer(game);
+            me.showHex(game, hex);
         });
     }
     else {
@@ -371,15 +466,15 @@ Board.prototype.showHex = function(playerel, hexel, hex) {
 //            me.showHex(playerel, hexel, player, hex)
 //        });
         if (hex.tier < 4) {
-            hexel.append(eUpgrade);
+            game.eHex.append(eUpgrade);
             $(eUpgrade).click(function() {
                 hex.tier += 1;
                 me.unrune();
                 me.connect();
-                me.rune();
+                me.rune(game);
     //            player.gold -= 150;
-                me.showPlayer(playerel);
-                me.showHex(playerel, hexel, hex);
+                me.showPlayer(game);
+                me.showHex(game, hex);
             });
         }
     }
