@@ -13,15 +13,18 @@ $(function() {
         var hex = oGame.board.hexes[id];
         if (id !== oGame.board.heart) {
             eHex.empty();
+            oGame.board.setValues();
+            oGame.setValues();
+            oGame.showPlayer();
             oGame.showHex(hex);
         }
         if (id === oGame.board.heart) {
             eHex.empty();
-            oGame.showHex(hex);
             oGame.board.setValues();
             oGame.setValues();
             oGame.showPlayer();
             oGame.showRange();
+            oGame.showHex(hex);
         }
     });
 });
@@ -31,7 +34,6 @@ function Game(eCanvas, ePlayer, eHex) {
     this.ePlayer = ePlayer;
     this.eHex = eHex;
     this.player = new Player;
-    this.slow = 1;
     this.runeTypes = ["dam", "as", "cc", "cd", "range", "gold", "chain", "slow", "split"];
 }
 Game.prototype.init = function() {
@@ -68,6 +70,13 @@ Game.prototype.setValues = function() {
     this.cc = Math.round((this.player.cc + this.board.cc) * 100) / 100;
     this.cd = Math.round((this.player.cd + this.board.cd) * 100) / 100;
     this.dps = Math.round(this.damage * this.as * 100) / 100;
+    this.gold = this.board.gold;
+    this.chain = this.board.chain;
+    this.chainEffect = this.board.chainEffect;
+    this.slow = this.board.slow;
+    this.slowEffect = this.board.slowEffect;
+    this.split = this.board.split;
+    this.splitEffect = this.board.splitEffect;
 };
 Game.prototype.showPlayer = function() {
     var me = this;
@@ -85,6 +94,11 @@ Game.prototype.showPlayer = function() {
     var eTotalAs = $('<p>Total Attack Speed: ' + this.as + ' / second</p>');
     var eTotalCc = $('<p>Total Critical Chance: ' + this.cc + '</p>');
     var eTotalCd = $('<p>Total Critical Damage: ' + this.cd + '</p>');
+    var eTotalGold = $('<p>Total Gold Bonus: ' + this.gold + ' %</p>');
+    var eChain = $('<p>Chaining: ' + this.chainEffect + '</p>');
+    var eSlow = $('<p>Slowing: ' + this.slowEffect + '</p>');
+    var eSplit = $('<p>Splitting: ' + this.splitEffect + '</p>');
+    
     var eStartWave = $('<button type="button" id="waveStart">Wave</button>');
 
     this.ePlayer.append(eHealth)
@@ -100,6 +114,10 @@ Game.prototype.showPlayer = function() {
         .append(eTotalAs)
         .append(eTotalCc)
         .append(eTotalCd)
+        .append(eTotalGold)
+        .append(eChain)
+        .append(eSlow)
+        .append(eSplit)
         .append(eStartWave);
 
     $(eStartWave).click(function() {
@@ -139,14 +157,16 @@ Game.prototype.showHex = function(hex) {
         var eSlow = $('<button type="button" id="slowButton">Slow</button>');   
         var eSplit = $('<button type="button" id="splitButton">Split</button>');
         
-        if (me.player.gold >= 100) {
-            me.eHex.append(eDamage).append(eAs).append(eRange);
+        if (this.player.gold >= 100) {
+            this.eHex.append(eDamage).append(eAs).append(eRange);
         }
-        if (me.player.gold >= 150) {
-            me.eHex.append(eCc).append(eCd).append(eGold);
+        if (this.player.gold >= 150) {
+            this.eHex.append(eCc).append(eCd).append(eGold);
         }
-        if (me.player.gold >= 250) {
-            me.eHex.append(eChain).append(eSlow).append(eSplit);
+        if (this.player.gold >= 250) {
+            if (this.chain !== true) { this.eHex.append(eChain); }
+            if (this.slow !== true) { this.eHex.append(eSlow); }
+            if (this.split !== true) { this.eHex.append(eSplit); }
         }
         $(eDamage).click(function() { me.runeBuy(0, hex); });
         $(eAs).click(function() { me.runeBuy(1, hex); });
@@ -161,12 +181,12 @@ Game.prototype.showHex = function(hex) {
     else if (hex.rune !== "heart") {
         var eSell = $('<button type="button" id="sellButton">Sell</button>');
         var eUpgrade = $('<button type="button" id="upgradeButton">Upgrade</button>');
-        me.eHex.append(eSell);
+        this.eHex.append(eSell);
         $(eSell).click(function() {
             me.runeSell(hex);
         });
         if (hex.tier < 4 && hex.runeSet < 6) {
-            me.eHex.append(eUpgrade);
+            this.eHex.append(eUpgrade);
             $(eUpgrade).click(function() { me.runeUpgrade(hex); });
         }
     }
@@ -263,13 +283,15 @@ Game.prototype.enemyStartMoving = function(enemy, to, distance) {
     }, 30);
 };
 Game.prototype.enemyMove = function (enemy, to, distance) {
-    var x = enemy.center.x + enemy.cosine * distance;
-    var y = enemy.center.y + enemy.sine * distance;
+    var slow = 1;
+    if (this.slowEffect === true && getDistance(enemy.center, to) <= this.range) { slow = 0.5; }
+    var x = enemy.center.x + enemy.cosine * distance * slow;
+    var y = enemy.center.y + enemy.sine * distance * slow;
     var from = new Punt(x, y);
     enemy.element.setAttribute('cx', x);
     enemy.element.setAttribute('cy', y);
     enemy.center = from;
-    if (getDistance(from, to) < 50) {
+    if (getDistance(enemy.center, to) < 50) {
 //        console.log('hit');
         this.player.health -= enemy.damage;
         this.showPlayer();
@@ -317,7 +339,7 @@ function Board(canvas, center, radius, side) {
     this.height = Math.sqrt(3 * this.side * this.side);
     this.hexes = [];
     this.enemies = [];
-    this.runeStats = [10, 10, 1, 10, 3];
+    this.runeStats = [10, 10, 1, 10, 5, 5];
 };
 Board.prototype.hexCreate = function() {
     var x = this.center.x - this.height * (this.radius + this.radius);
@@ -409,10 +431,14 @@ Board.prototype.runeCreate = function() {
         this.hexes[i].cc = 0;
         this.hexes[i].cd = 0;
         this.hexes[i].range = 0;
+        this.hexes[i].gold = 0;
+        this.hexes[i].chain = false;
+        this.hexes[i].slow = false;
+        this.hexes[i].split = false;
         if (this.hexes[i].xid === this.radius && this.hexes[i].yid === this.radius) {
             this.hexes[i].rune = "heart";
         }
-        if (this.hexes[i].rune !== "") {
+        if (this.hexes[i].rune !== "" && this.hexes[i].rune !== "heart") {
             switch (this.hexes[i].runeSet) {
                 case 0:
                     this.hexes[i].dam = this.runeStats[0] * this.hexes[i].tier;
@@ -428,6 +454,18 @@ Board.prototype.runeCreate = function() {
                     break;
                 case 4:
                     this.hexes[i].range = this.runeStats[4] * this.hexes[i].tier;
+                    break;
+                case 5:
+                    this.hexes[i].gold = this.runeStats[5] * this.hexes[i].tier;
+                    break;
+                case 6:
+                    this.hexes[i].chain = true;
+                    break;
+                case 7:
+                    this.hexes[i].slow = true;
+                    break;
+                case 8:
+                    this.hexes[i].split = true;
                     break;
             }
         }
@@ -452,8 +490,15 @@ Board.prototype.setValues = function() {
     this.cc = 0;
     this.cd = 0;
     this.range = 0;
+    this.gold = 0;
+    this.chain = false;
+    this.chainEffect = false;
+    this.slow = false;
+    this.slowEffect = false;
+    this.split = false;
+    this.splitEffect = false;
     for (var i = 0; i < this.hexes.length; i++) {
-        if (this.hexes[i].rune !== "" && i !== this.heart) {
+        if (this.hexes[i].rune !== "" && this.hexes[i].rune !== "heart") {
             var hex = this.hexes[i];
             var asc;
             var desc;
@@ -471,6 +516,19 @@ Board.prototype.setValues = function() {
             this.cc += hex.cc * desc;
             this.cd += hex.cd * desc;
             this.range += hex.range * desc;
+            this.gold += hex.gold * asc;
+            if (hex.chain === true) {
+                this.chain = true;
+                if (hex.heartConnected === true) { this.chainEffect = true; }
+            }
+            if (hex.slow === true) {
+                this.slow = true;
+                if (hex.heartConnected === true) { this.slowEffect = true; }
+            }
+            if (hex.split === true) {
+                this.split = true;
+                if (hex.heartConnected === true) { this.splitEffect = true; }
+            }
         }
     }
 };
