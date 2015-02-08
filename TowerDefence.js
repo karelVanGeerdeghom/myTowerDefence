@@ -34,7 +34,6 @@ function Game(eCanvas, ePlayer, eHex) {
     this.ePlayer = ePlayer;
     this.eHex = eHex;
     this.player = new Player;
-    this.runeTypes = ["dam", "as", "cc", "cd", "range", "ml","ll", "chain", "slow", "split"];
 }
 Game.prototype.init = function() {
     this.createSvg();
@@ -45,8 +44,8 @@ Game.prototype.init = function() {
     this.center = new Punt(0, 0);
     this.board = new Board(this.eSvg, this.center, 4, 24);
     this.board.hexCreate();
-    this.board.hexDraw();
     this.board.runeCreate();
+    this.board.hexDraw();
     this.board.runeDraw(this.eDefs);
 };
 Game.prototype.createSvg = function() {
@@ -145,12 +144,14 @@ Game.prototype.showRange = function() {
 };
 Game.prototype.showHex = function(hex) {
     this.eHex.empty();
-    var eRune = $('<p>Rune: ' + hex.rune + '</p>');
-    var eTier = $('<p>Tier: ' + hex.tier + '</p>');
-    var eHeartConnected = $('<p>Connected: ' + hex.heartConnected + '</p>');
-    this.eHex.append(eRune).append(eTier).append(eHeartConnected);
+    if (hex.rune) {
+        var eRune = $('<p>Rune: ' + hex.rune.name + '</p>');
+        var eTier = $('<p>Tier: ' + hex.rune.tier + '</p>');
+        var eHeartConnected = $('<p>Connected: ' + hex.heartConnected + '</p>');
+        this.eHex.append(eRune).append(eTier).append(eHeartConnected);
+    }
     var me = this;
-    if (hex.rune === "") {
+    if (!hex.rune) {
         var eDamage = $('<button type="button" id="damButton">Dam</button>');
         var eAs = $('<button type="button" id="asButton">AS</button>');
         var eRange = $('<button type="button" id="rangeButton">Range</button>');
@@ -173,35 +174,34 @@ Game.prototype.showHex = function(hex) {
             if (this.slow !== true) { this.eHex.append(eSlow); }
             if (this.split !== true) { this.eHex.append(eSplit); }
         }
-        $(eDamage).click(function() { me.runeBuy(0, hex); });
-        $(eAs).click(function() { me.runeBuy(1, hex); });
-        $(eCc).click(function() { me.runeBuy(2, hex); });
-        $(eCd).click(function() { me.runeBuy(3, hex); });
-        $(eRange).click(function() { me.runeBuy(4, hex); });
-        $(eMl).click(function() { me.runeBuy(5, hex); });
-        $(eLl).click(function() { me.runeBuy(6, hex); });
-        $(eChain).click(function() { me.runeBuy(7, hex); });
-        $(eSlow).click(function() { me.runeBuy(8, hex); });
-        $(eSplit).click(function() { me.runeBuy(9, hex); });
+        $(eDamage).click(function() { me.runeBuy(1, hex); });
+        $(eAs).click(function() { me.runeBuy(2, hex); });
+        $(eCc).click(function() { me.runeBuy(3, hex); });
+        $(eCd).click(function() { me.runeBuy(4, hex); });
+        $(eRange).click(function() { me.runeBuy(5, hex); });
+        $(eMl).click(function() { me.runeBuy(6, hex); });
+        $(eLl).click(function() { me.runeBuy(7, hex); });
+        $(eChain).click(function() { me.runeBuy(8, hex); });
+        $(eSlow).click(function() { me.runeBuy(9, hex); });
+        $(eSplit).click(function() { me.runeBuy(10, hex); });
     }
-    else if (hex.rune !== "heart") {
+    else if (hex.rune.id !== 0) {
         var eSell = $('<button type="button" id="sellButton">Sell</button>');
         var eUpgrade = $('<button type="button" id="upgradeButton">Upgrade</button>');
         this.eHex.append(eSell);
         $(eSell).click(function() {
             me.runeSell(hex);
         });
-        if (hex.tier < 4 && hex.runeSet < 7) {
+        if (hex.tier < 4 && hex.rune.id < 8) {
             this.eHex.append(eUpgrade);
             $(eUpgrade).click(function() { me.runeUpgrade(hex); });
         }
     }
 };
-Game.prototype.runeBuy = function(rune, hex) {
-    hex.rune = this.runeTypes[rune];
-    hex.runeSet = rune;
+Game.prototype.runeBuy = function(id, hex) {
+    hex.rune = new Rune(id);
     if (this.board.hexCheckConnected(hex)) {
-        hex.tier = 1;
+        hex.rune.tier = 1;
         hex.heartConnected = true;
     }
     this.board.hexCheckDisconnected(hex);
@@ -216,6 +216,8 @@ Game.prototype.runeBuy = function(rune, hex) {
     this.showHex(hex);
 };
 Game.prototype.runeSell = function(hex) {
+    delete hex.rune;
+    hex.element.setAttribute("fill", "black");
     for (var i = 0; i < this.board.hexes.length; i++) {
         if (i !== this.board.heart) {
             this.board.hexes[i].heartConnected = false;
@@ -223,20 +225,8 @@ Game.prototype.runeSell = function(hex) {
         this.board.hexes[i].connections = [];
         this.board.hexes[i].directions = [];
     }
-
-    hex.runeSet = null;
-    hex.rune = "";
-    hex.tier = 0;
-    hex.dam = 0;
-    hex.as = 0;
-    hex.cc = 0;
-    hex.cd = 0;
-    hex.range = 0;
-    hex.ll = 0;
-    hex.element.setAttribute("fill", "black");
-    
     for (var i = 0; i < this.board.hexes.length; i++) {
-        if (this.board.hexes[i].rune !== "" && this.board.hexes[i].rune !== "heart") {
+        if (this.board.hexes[i].rune && i !== this.board.heart) {
             if (this.board.hexCheckConnected(this.board.hexes[i])) {
                 this.board.hexes[i].heartConnected = true;
             }
@@ -254,7 +244,7 @@ Game.prototype.runeSell = function(hex) {
     this.showHex(hex);
 };
 Game.prototype.runeUpgrade = function(hex) {
-    hex.tier += 1;
+    hex.rune.tier += 1;
     this.board.runeRemove();
     this.board.hexConnect();
     this.board.runeCreate();
@@ -267,7 +257,7 @@ Game.prototype.runeUpgrade = function(hex) {
 };
 Game.prototype.waveCreate = function() {
     this.board.enemies = [];
-    for (var i = 0; i < 20; i++) {
+    for (var i = 0; i < 10; i++) {
         var randomAngle = Math.random() * 2 * Math.PI;
         var sine = Math.round(Math.sin(randomAngle) * Math.pow(10, 12)) / Math.pow(10, 12);
         var cosine = Math.round(Math.cos(randomAngle) * Math.pow(10, 12)) / Math.pow(10, 12);
@@ -433,7 +423,6 @@ function Board(canvas, center, radius, side) {
     this.height = Math.sqrt(3 * this.side * this.side);
     this.hexes = [];
     this.enemies = [];
-    this.runeStats = [10, 10, 1, 10, 5, 1, 1];// dam as cc cd range ml ll
 };
 Board.prototype.hexCreate = function() {
     var x = this.center.x - this.height * (this.radius + this.radius);
@@ -449,6 +438,7 @@ Board.prototype.hexCreate = function() {
             var hex = new Hex(this.hexes.length, i + xId, j, punt, this.side);
             if (i === this.radius && j === this.radius) {
                 this.heart = this.hexes.length;
+                hex.rune = new Rune(0);
                 hex.heartConnected = true;
             }
             this.hexes.push(hex);
@@ -463,7 +453,7 @@ Board.prototype.hexDraw = function() {
 Board.prototype.hexConnect = function() {
     for (var i = 0; i < this.hexes.length; i++ ) {
         for (var j = 0; j < this.hexes.length; j++ ) {
-            if (this.hexes[i].rune !== "" && this.hexes[j].rune !== "") {
+            if (this.hexes[i].rune && this.hexes[j].rune) {
                 if (this.hexes[i].heartConnected === true && this.hexes[j].heartConnected === true) {
                     if(this.hexes[i].xid == this.hexes[j].xid - 1 && this.hexes[i].yid == this.hexes[j].yid) {
                         if (this.hexes[i].connections.indexOf(j) === -1) { this.hexes[i].connections.push(j); }
@@ -510,7 +500,7 @@ Board.prototype.hexCheckDisconnected = function(hex) {
     for (var i = 0; i < this.hexes.length; i++ ) {
         if ((Math.abs(hex.xid - this.hexes[i].xid) < 2) && (Math.abs(hex.yid - this.hexes[i].yid) < 2)) {
             if (Math.abs(hex.xid + hex.yid - (this.hexes[i].xid + this.hexes[i].yid)) === Math.abs(hex.xid - this.hexes[i].xid) + Math.abs(hex.yid - this.hexes[i].yid)) {
-                if (this.hexes[i].rune !== "" && this.hexes[i].heartConnected === false && hex.heartConnected === true) {
+                if (this.hexes[i].rune && this.hexes[i].heartConnected === false && hex.heartConnected === true) {
                     this.hexes[i].heartConnected = true;
                     this.hexCheckDisconnected(this.hexes[i]);
                 }
@@ -520,49 +510,47 @@ Board.prototype.hexCheckDisconnected = function(hex) {
 };
 Board.prototype.runeCreate = function() {
     for (var i = 0; i < this.hexes.length; i++ ) {
-        this.hexes[i].dam = 0;
-        this.hexes[i].as = 0;
-        this.hexes[i].cc = 0;
-        this.hexes[i].cd = 0;
-        this.hexes[i].range = 0;
-        this.hexes[i].ml = 0;
-        this.hexes[i].chain = false;
-        this.hexes[i].slow = false;
-        this.hexes[i].split = false;
-        if (this.hexes[i].xid === this.radius && this.hexes[i].yid === this.radius) {
-            this.hexes[i].rune = "heart";
-        }
-        if (this.hexes[i].rune !== "" && this.hexes[i].rune !== "heart") {
-            switch (this.hexes[i].runeSet) {
-                case 0:
-                    this.hexes[i].dam = this.runeStats[0] * this.hexes[i].tier;
-                    break;
+        if (this.hexes[i].rune && this.hexes[i].rune.id !== 0) {
+            this.hexes[i].rune.dam = 0;
+            this.hexes[i].rune.as = 0;
+            this.hexes[i].rune.cc = 0;
+            this.hexes[i].rune.cd = 0;
+            this.hexes[i].rune.range = 0;
+            this.hexes[i].rune.ml = 0;
+            this.hexes[i].rune.chain = false;
+            this.hexes[i].rune.slow = false;
+            this.hexes[i].rune.split = false;
+            
+            switch (this.hexes[i].rune.id) {
                 case 1:
-                    this.hexes[i].as = this.runeStats[1] * this.hexes[i].tier;
+                    this.hexes[i].rune.dam = this.hexes[i].rune.stats[1] * this.hexes[i].rune.tier;
                     break;
                 case 2:
-                    this.hexes[i].cc = this.runeStats[2] * this.hexes[i].tier;
+                    this.hexes[i].rune.as = this.hexes[i].rune.stats[2] * this.hexes[i].rune.tier;
                     break;
                 case 3:
-                    this.hexes[i].cd = this.runeStats[3] * this.hexes[i].tier;
+                    this.hexes[i].rune.cc = this.hexes[i].rune.stats[3] * this.hexes[i].rune.tier;
                     break;
                 case 4:
-                    this.hexes[i].range = this.runeStats[4] * this.hexes[i].tier;
+                    this.hexes[i].rune.cd = this.hexes[i].rune.stats[4] * this.hexes[i].rune.tier;
                     break;
                 case 5:
-                    this.hexes[i].ml = this.runeStats[5] * this.hexes[i].tier;
+                    this.hexes[i].rune.range = this.hexes[i].rune.stats[5] * this.hexes[i].rune.tier;
                     break;
                 case 6:
-                    this.hexes[i].ll = this.runeStats[6] * this.hexes[i].tier;
-                    break; 
-                case 7:
-                    this.hexes[i].chain = true;
+                    this.hexes[i].rune.ml = this.hexes[i].rune.stats[6] * this.hexes[i].rune.tier;
                     break;
+                case 7:
+                    this.hexes[i].rune.ll = this.hexes[i].rune.stats[7] * this.hexes[i].rune.tier;
+                    break; 
                 case 8:
-                    this.hexes[i].slow = true;
+                    this.hexes[i].rune.chain = true;
                     break;
                 case 9:
-                    this.hexes[i].split = true;
+                    this.hexes[i].rune.slow = true;
+                    break;
+                case 10:
+                    this.hexes[i].rune.split = true;
                     break;
             }
         }
@@ -570,7 +558,7 @@ Board.prototype.runeCreate = function() {
 };
 Board.prototype.runeDraw = function(defs) {
     for (var i = 0; i < this.hexes.length; i++ ) {
-        if (this.hexes[i].rune !== "") {
+        if (this.hexes[i].rune) {
             defs.appendChild(this.hexes[i].pattern());
         }
     }
@@ -596,7 +584,7 @@ Board.prototype.setValues = function() {
     this.split = false;
     this.splitEffect = false;
     for (var i = 0; i < this.hexes.length; i++) {
-        if (this.hexes[i].rune !== "" && this.hexes[i].rune !== "heart") {
+        if (this.hexes[i].rune && this.heart !== i) {
             var hex = this.hexes[i];
             var asc;
             var desc;
@@ -609,22 +597,22 @@ Board.prototype.setValues = function() {
                 case 5: asc = 2; desc = 0.8; break;
                 case 6: asc = 2.4; desc = 0.4; break;
             }
-            this.dam += hex.dam * asc;
-            this.as += hex.as * asc;
-            this.cc += hex.cc * desc;
-            this.cd += hex.cd * desc;
-            this.range += hex.range * desc;
-            this.ml += hex.ml * desc;
-            this.ll += hex.ll * desc;
-            if (hex.chain === true) {
+            this.dam += hex.rune.dam * asc;
+            this.as += hex.rune.as * asc;
+            this.cc += hex.rune.cc * desc;
+            this.cd += hex.rune.cd * desc;
+            this.range += hex.rune.range * desc;
+            this.ml += hex.rune.ml * desc;
+            this.ll += hex.rune.ll * desc;
+            if (hex.rune.chain === true) {
                 this.chain = true;
                 if (hex.heartConnected === true) { this.chainEffect = true; }
             }
-            if (hex.slow === true) {
+            if (hex.rune.slow === true) {
                 this.slow = true;
                 if (hex.heartConnected === true) { this.slowEffect = true; }
             }
-            if (hex.split === true) {
+            if (hex.rune.split === true) {
                 this.split = true;
                 if (hex.heartConnected === true) { this.splitEffect = true; }
             }
@@ -672,17 +660,6 @@ function Hex(id, xid, yid, center, side){
     this.connections = [];
     this.directions = [];
     this.heartConnected = false;
-    
-    this.rune = "";
-    this.runeSet = null;
-    this.tier = 1;
-    this.dam = 0;
-    this.as = 0;
-    this.cc = 0;
-    this.cd = 0;
-    this.range = 0;
-    this.ml = 0;
-    this.ll = 0;
 }
 Hex.prototype.element = function() {
     this.points = "";
@@ -712,16 +689,16 @@ Hex.prototype.pattern = function() {
     this.pattern.setAttribute("width", this.side * 3.6);
     this.pattern.setAttribute("height", this.side * 3.6);
 
-    var tier = this.tier;
+    var tier = this.rune.tier;
     if (this.heartConnected === false) { tier = 0; }
 
     var iRune = document.createElementNS('http://www.w3.org/2000/svg', 'image');
     iRune.setAttribute("width", this.side * 3.6);
     iRune.setAttribute("height", this.side * 3.6);
-    iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + this.rune + tier + '.png');
+    iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + this.rune.name + tier + '.png');
     this.pattern.appendChild(iRune);
     
-    if (this.connections.length > 0 || this.rune === "heart") {
+    if (this.connections.length > 0 || this.rune.id === 0) {
         var iCircle = document.createElementNS('http://www.w3.org/2000/svg', 'image');
         iCircle.setAttribute("width", this.side * 3.6);
         iCircle.setAttribute("height", this.side * 3.6);
@@ -741,6 +718,20 @@ Hex.prototype.pattern = function() {
     
     return this.pattern;
 };
+function Rune(id){
+    this.runeTypes = ["heart", "dam", "as", "cc", "cd", "range", "ml", "ll", "chain", "slow", "split"];
+    this.id = id;
+    this.name = this.runeTypes[id];
+    this.tier = 1;
+    this.dam = 0;
+    this.as = 0;
+    this.cc = 0;
+    this.cd = 0;
+    this.range = 0;
+    this.ml = 0;
+    this.ll = 0;
+    this.stats = [0, 10, 10, 1, 10, 5, 1, 1];// heart dam as cc cd range ml ll
+}
 function Enemy(to, center) {
     this.damage = 5;
     var mod = Math.round((Math.random() + 1) * 100) / 100;
