@@ -34,7 +34,7 @@ function Game(eCanvas, ePlayer, eHex) {
     this.ePlayer = ePlayer;
     this.eHex = eHex;
     this.player = new Player;
-    this.runeTypes = ["dam", "as", "cc", "cd", "range", "gold", "chain", "slow", "split"];
+    this.runeTypes = ["dam", "as", "cc", "cd", "range", "gold","ll", "chain", "slow", "split"];
 }
 Game.prototype.init = function() {
     this.createSvg();
@@ -43,7 +43,7 @@ Game.prototype.init = function() {
     this.eSvg.appendChild(this.eDefs);
     
     this.center = new Punt(0, 0);
-    this.board = new Board(this.eSvg, this.center, 3, 30);
+    this.board = new Board(this.eSvg, this.center, 4, 24);
     this.board.hexCreate();
     this.board.hexDraw();
     this.board.runeCreate();
@@ -72,6 +72,7 @@ Game.prototype.setValues = function() {
     this.range = this.player.range * ((100 + this.board.range) / 100);
     this.dps = Math.round(this.damage * (Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100) * 100) / 100;
     this.gold = this.board.gold;
+    this.ll = this.board.ll;
     this.chain = this.board.chain;
     this.chainEffect = this.board.chainEffect;
     this.slow = this.board.slow;
@@ -96,6 +97,7 @@ Game.prototype.showPlayer = function() {
     var eTotalCc = $('<p>Total Critical Chance: ' + this.cc + '</p>');
     var eTotalCd = $('<p>Total Critical Damage: ' + this.cd + '</p>');
     var eTotalGold = $('<p>Total Gold Bonus: ' + this.gold + ' %</p>');
+    var eTotalLl = $('<p>Total Lifeleach Bonus: ' + this.ll + ' %</p>');
     var eChain = $('<p>Chaining: ' + this.chainEffect + '</p>');
     var eSlow = $('<p>Slowing: ' + this.slowEffect + '</p>');
     var eSplit = $('<p>Splitting: ' + this.splitEffect + '</p>');
@@ -116,6 +118,7 @@ Game.prototype.showPlayer = function() {
         .append(eTotalCc)
         .append(eTotalCd)
         .append(eTotalGold)
+        .append(eTotalLl)
         .append(eChain)
         .append(eSlow)
         .append(eSplit)
@@ -135,7 +138,7 @@ Game.prototype.showRange = function() {
     svgRange.setAttribute('cy', this.center.y);
     svgRange.setAttribute('r', this.player.range * ((100 + this.board.range) / 100));
     svgRange.setAttribute('stroke', 'green');
-    svgRange.setAttribute('stroke-width', '1px');
+    svgRange.setAttribute('stroke-width', '2px');
     svgRange.setAttribute('fill', 'none');
     svgRange.setAttribute('id', 'playerRange');
     this.eSvg.appendChild(svgRange);    
@@ -154,6 +157,7 @@ Game.prototype.showHex = function(hex) {
         var eCc = $('<button type="button" id="ccButton">CC</button>');
         var eCd = $('<button type="button" id="cdButton">CD</button>');
         var eGold = $('<button type="button" id="goldButton">Gold</button>');
+        var eLl = $('<button type="button" id="llButton">Lifeleach</button>');
         var eChain = $('<button type="button" id="chainButton">Chain</button>');
         var eSlow = $('<button type="button" id="slowButton">Slow</button>');   
         var eSplit = $('<button type="button" id="splitButton">Split</button>');
@@ -162,7 +166,7 @@ Game.prototype.showHex = function(hex) {
             this.eHex.append(eDamage).append(eAs).append(eRange);
         }
         if (this.player.gold >= 150) {
-            this.eHex.append(eCc).append(eCd).append(eGold);
+            this.eHex.append(eCc).append(eCd).append(eGold).append(eLl);
         }
         if (this.player.gold >= 250) {
             if (this.chain !== true) { this.eHex.append(eChain); }
@@ -175,9 +179,10 @@ Game.prototype.showHex = function(hex) {
         $(eCd).click(function() { me.runeBuy(3, hex); });
         $(eRange).click(function() { me.runeBuy(4, hex); });
         $(eGold).click(function() { me.runeBuy(5, hex); });
-        $(eChain).click(function() { me.runeBuy(6, hex); });
-        $(eSlow).click(function() { me.runeBuy(7, hex); });
-        $(eSplit).click(function() { me.runeBuy(8, hex); });
+        $(eLl).click(function() { me.runeBuy(6, hex); });
+        $(eChain).click(function() { me.runeBuy(7, hex); });
+        $(eSlow).click(function() { me.runeBuy(8, hex); });
+        $(eSplit).click(function() { me.runeBuy(9, hex); });
     }
     else if (hex.rune !== "heart") {
         var eSell = $('<button type="button" id="sellButton">Sell</button>');
@@ -186,7 +191,7 @@ Game.prototype.showHex = function(hex) {
         $(eSell).click(function() {
             me.runeSell(hex);
         });
-        if (hex.tier < 4 && hex.runeSet < 6) {
+        if (hex.tier < 4 && hex.runeSet < 7) {
             this.eHex.append(eUpgrade);
             $(eUpgrade).click(function() { me.runeUpgrade(hex); });
         }
@@ -227,6 +232,7 @@ Game.prototype.runeSell = function(hex) {
     hex.cc = 0;
     hex.cd = 0;
     hex.range = 0;
+    hex.ll = 0;
     hex.element.setAttribute("fill", "black");
     
     for (var i = 0; i < this.board.hexes.length; i++) {
@@ -265,7 +271,7 @@ Game.prototype.waveCreate = function() {
         var randomAngle = Math.random() * 2 * Math.PI;
         var sine = Math.round(Math.sin(randomAngle) * Math.pow(10, 12)) / Math.pow(10, 12);
         var cosine = Math.round(Math.cos(randomAngle) * Math.pow(10, 12)) / Math.pow(10, 12);
-        var punt = new Punt(sine * (i * 30 + 566), cosine * (i * 20 + 566));
+        var punt = new Punt(sine * (i * 10 + 566), cosine * (i * 10 + 566));
         var enemy = new Enemy(this.board.center, punt);
         this.board.enemies.push(enemy);
     }
@@ -286,44 +292,60 @@ Game.prototype.waveStart = function() {
     var center = this.board.center;
     for (var i = 0; i < this.board.enemies.length; i ++) {
         this.eSvg.appendChild(this.board.enemies[i].element());
-        this.enemyStartMoving(this.board.enemies[i], center, 3.5);
+        this.enemyStartMoving(this.board.enemies[i], center);
     }
 };
 Game.prototype.enemyStartMoving = function(enemy, to, distance) {
     var me = this;
     enemy.interval = setInterval(function() {
-        me.enemyMove(enemy, to, distance);
+        me.enemyMove(enemy, to);
     }, 35);
 };
-Game.prototype.enemyMove = function (enemy, to, distance) {
-    var slow = 1;
-    if (this.slowEffect === true && getDistance(enemy.center, to) <= this.range) { slow = 0.5; }
-    var x = enemy.center.x + enemy.cosine * distance * slow;
-    var y = enemy.center.y + enemy.sine * distance * slow;
-    var from = new Punt(x, y);
-    enemy.element.setAttribute('cx', x);
-    enemy.element.setAttribute('cy', y);
-    enemy.center = from;
-    if (getDistance(enemy.center, to) < 50) {
-        this.player.health -= enemy.damage;
-        this.showPlayer();
-        this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
-        enemy.element.remove();
-        clearInterval(enemy.interval);
+Game.prototype.enemyMove = function (enemy, to) {
+    if (!enemy.freeze) {
+        var slow = 1;
+        if (this.slowEffect === true && getDistance(enemy.center, to) <= this.range) { slow = 0.5; }
+        var x = enemy.center.x + enemy.cosine * enemy.speed * slow;
+        var y = enemy.center.y + enemy.sine * enemy.speed * slow;
+        var from = new Punt(x, y);
+        enemy.element.setAttribute('cx', x);
+        enemy.element.setAttribute('cy', y);
+        enemy.center = from;
+        if (getDistance(enemy.center, to) < 50) {
+            this.player.health -= enemy.damage;
+            this.showPlayer();
+            this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
+            enemy.element.remove();
+            clearInterval(enemy.interval);
+        }
     }
 };
 Game.prototype.playerStartAttacking = function() {
     var me = this;
+    var freezeTime = 100;
+    var color = "white";
     this.player.interval = setInterval(function() {
         var idClosest = me.enemyClosest(me.board.center, me.range);
         if (idClosest >= 0) {
             var oClosestPunt = new Punt(me.board.enemies[idClosest].center.x, me.board.enemies[idClosest].center.y);
-            me.board.showAttack(me.board.center, oClosestPunt, "white");
+            me.board.enemies[idClosest].freeze = true;
+            setTimeout(function() {
+                if (me.board.enemies[idClosest]) {
+                    me.board.enemies[idClosest].freeze = false;
+                }
+            }, freezeTime);
+            me.board.showAttack(me.board.center, oClosestPunt, color);
             me.playerAttack(me.board.enemies[idClosest]);
             if (me.chainEffect === true) {
                 var idClosestChained = me.enemyFurthest(oClosestPunt, me.range / 2);
                 if (idClosestChained >= 0) {
-                    me.board.showAttack(oClosestPunt, me.board.enemies[idClosestChained].center, "white");
+                    me.board.enemies[idClosestChained].freeze = true;
+                    setTimeout(function() {
+                        if (me.board.enemies[idClosestChained]) {
+                            me.board.enemies[idClosestChained].freeze = false;
+                        }
+                    }, freezeTime);
+                    me.board.showAttack(oClosestPunt, me.board.enemies[idClosestChained].center, color);
                     me.playerAttack(me.board.enemies[idClosestChained]);
                 }
             }
@@ -332,12 +354,24 @@ Game.prototype.playerStartAttacking = function() {
             var idFurthest = me.enemyFurthest(me.board.center, me.range);
             if (idFurthest >= 0) {
                 var oFurthestPunt = new Punt(me.board.enemies[idFurthest].center.x, me.board.enemies[idFurthest].center.y);
-                me.board.showAttack(me.board.center, oFurthestPunt, "white");
+                me.board.enemies[idFurthest].freeze = true;
+                setTimeout(function() {
+                    if (me.board.enemies[idFurthest]) {
+                        me.board.enemies[idFurthest].freeze = false;
+                    }
+                }, freezeTime);
+                me.board.showAttack(me.board.center, oFurthestPunt, color);
                 me.playerAttack(me.board.enemies[idFurthest]);
                 if (me.chainEffect === true) {
                     var idFurthestChained = me.enemyFurthest(oFurthestPunt, me.range / 2);
                     if (idFurthestChained >= 0) {
-                        me.board.showAttack(oFurthestPunt, me.board.enemies[idFurthestChained].center, "white");
+                        me.board.enemies[idFurthestChained].freeze = true;
+                        setTimeout(function() {
+                            if (me.board.enemies[idFurthestChained]) {
+                                me.board.enemies[idFurthestChained].freeze = false;
+                            }
+                        }, freezeTime);
+                        me.board.showAttack(oFurthestPunt, me.board.enemies[idFurthestChained].center, color);
                         me.playerAttack(me.board.enemies[idFurthestChained]);
                     }
                 }
@@ -373,6 +407,10 @@ Game.prototype.enemyFurthest = function(from, range) {
     return idFurthest;
 }
 Game.prototype.playerAttack = function(enemy) {
+    if (this.ll > 0) {
+        this.player.health += this.damage * (this.ll / 100);
+        this.showPlayer();
+    }
     enemy.health -= this.damage;
     if (enemy.health <= 0) {
         this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
@@ -389,7 +427,7 @@ function Board(canvas, center, radius, side) {
     this.height = Math.sqrt(3 * this.side * this.side);
     this.hexes = [];
     this.enemies = [];
-    this.runeStats = [10, 10, 1, 10, 5, 5];
+    this.runeStats = [10, 10, 1, 10, 5, 5, 1];
 };
 Board.prototype.hexCreate = function() {
     var x = this.center.x - this.height * (this.radius + this.radius);
@@ -509,12 +547,15 @@ Board.prototype.runeCreate = function() {
                     this.hexes[i].gold = this.runeStats[5] * this.hexes[i].tier;
                     break;
                 case 6:
+                    this.hexes[i].ll = this.runeStats[6] * this.hexes[i].tier;
+                    break; 
+                case 7:
                     this.hexes[i].chain = true;
                     break;
-                case 7:
+                case 8:
                     this.hexes[i].slow = true;
                     break;
-                case 8:
+                case 9:
                     this.hexes[i].split = true;
                     break;
             }
@@ -541,6 +582,7 @@ Board.prototype.setValues = function() {
     this.cd = 0;
     this.range = 0;
     this.gold = 0;
+    this.ll = 0;
     this.chain = false;
     this.chainEffect = false;
     this.slow = false;
@@ -567,6 +609,7 @@ Board.prototype.setValues = function() {
             this.cd += hex.cd * desc;
             this.range += hex.range * desc;
             this.gold += hex.gold * asc;
+            this.ll += hex.ll * desc;
             if (hex.chain === true) {
                 this.chain = true;
                 if (hex.heartConnected === true) { this.chainEffect = true; }
@@ -593,12 +636,12 @@ Board.prototype.showAttack = function(source, target, color) {
     this.canvas.appendChild(attack);
     setTimeout(function() {
         attack.remove();
-    }, 150);
+    }, 100);
 };
 
 function Player() {
     this.health = 100;
-    this.range = 200;
+    this.range = 150;
     this.gold = 1000;
     this.dam = 10;
     this.cc = 5;
@@ -630,6 +673,8 @@ function Hex(id, xid, yid, center, side){
     this.cc = 0;
     this.cd = 0;
     this.range = 0;
+    this.gold = 0;
+    this.ll = 0;
     this.heartConnected = false;
 }
 Hex.prototype.element = function() {
@@ -692,13 +737,16 @@ Hex.prototype.pattern = function() {
     return this.pattern;
 };
 function Enemy(to, center) {
-    this.health = 33;
     this.damage = 5;
-    this.radius = 10;
+    var mod = Math.round((Math.random() + 1) * 100) / 100;
+    this.health = 15 * mod;
+    this.radius = 10 * mod;
+    this.speed = 5 / mod;
     this.center = center;
     this.angleRadians = Math.atan2(to.y - this.center.y, to.x - this.center.x);
     this.sine = Math.sin(this.angleRadians);
     this.cosine = Math.cos(this.angleRadians);
+    this.freeze = false;
 }
 Enemy.prototype.element = function() {
     this.element = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
