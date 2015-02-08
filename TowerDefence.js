@@ -34,7 +34,7 @@ function Game(eCanvas, ePlayer, eHex) {
     this.ePlayer = ePlayer;
     this.eHex = eHex;
     this.player = new Player;
-}
+};
 Game.prototype.init = function() {
     this.createSvg();
     this.createDefs();
@@ -257,26 +257,14 @@ Game.prototype.runeUpgrade = function(hex) {
 };
 Game.prototype.waveCreate = function() {
     this.board.enemies = [];
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 20; i++) {
         var randomAngle = Math.random() * 2 * Math.PI;
-        var sine = Math.round(Math.sin(randomAngle) * Math.pow(10, 12)) / Math.pow(10, 12);
-        var cosine = Math.round(Math.cos(randomAngle) * Math.pow(10, 12)) / Math.pow(10, 12);
-        var punt = new Punt(sine * (i * 10 + 566), cosine * (i * 10 + 566));
+        var sine = Math.sin(randomAngle);
+        var cosine = Math.cos(randomAngle);
+        var punt = new Punt(sine * (600), cosine * (600));
         var enemy = new Enemy(this.board.center, punt);
         this.board.enemies.push(enemy);
     }
-//    var punt1 = new Punt(40, 90);
-//    var enemy1 = new Enemy(this.board.center, punt1);
-//    this.board.enemies.push(enemy1);
-//    var punt2 = new Punt(-50, 100);
-//    var enemy2 = new Enemy(this.board.center, punt2);
-//    this.board.enemies.push(enemy2);
-//    var punt3 = new Punt(50, -120);
-//    var enemy3 = new Enemy(this.board.center, punt3);
-//    this.board.enemies.push(enemy3);
-//    var punt4 = new Punt(-40, -110);
-//    var enemy4 = new Enemy(this.board.center, punt4);
-//    this.board.enemies.push(enemy4);
 };
 Game.prototype.waveStart = function() {
     var center = this.board.center;
@@ -294,14 +282,14 @@ Game.prototype.enemyStartMoving = function(enemy, to, distance) {
 Game.prototype.enemyMove = function (enemy, to) {
     if (!enemy.freeze) {
         var slow = 1;
-        if (this.slowEffect === true && getDistance(enemy.center, to) <= this.range) { slow = 0.5; }
+        if (this.slowEffect === true && this.getDistance(enemy.center, to) <= this.range) { slow = 0.5; }
         var x = enemy.center.x + enemy.cosine * enemy.speed * slow;
         var y = enemy.center.y + enemy.sine * enemy.speed * slow;
         var from = new Punt(x, y);
         enemy.element.setAttribute('cx', x);
         enemy.element.setAttribute('cy', y);
         enemy.center = from;
-        if (getDistance(enemy.center, to) < 50) {
+        if (this.getDistance(enemy.center, to) < 50) {
             this.player.health -= enemy.damage;
             this.showPlayer();
             this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
@@ -309,6 +297,30 @@ Game.prototype.enemyMove = function (enemy, to) {
             clearInterval(enemy.interval);
         }
     }
+};
+Game.prototype.enemyClosest = function(from, range) {
+    var nClosest = 500;
+    var idClosest = -1;
+    for (var i = 0; i < this.board.enemies.length; i++) {
+        var nEnemyDistance = this.getDistance(from, this.board.enemies[i].center);
+        if (nEnemyDistance < range && nEnemyDistance < nClosest) {
+            nClosest = nEnemyDistance;
+            idClosest = i;
+        }
+    }
+    return idClosest;
+};
+Game.prototype.enemyFurthest = function(from, range) {
+    var nFurthest = 0;
+    var idFurthest = -1;
+    for (var i = 0; i < this.board.enemies.length; i++) {
+        var nEnemyDistance = this.getDistance(from, this.board.enemies[i].center);
+        if (nEnemyDistance < range && nEnemyDistance > nFurthest) {
+            nFurthest = nEnemyDistance;
+            idFurthest = i;
+        }
+    }
+    return idFurthest;
 };
 Game.prototype.playerStartAttacking = function() {
     var me = this;
@@ -373,30 +385,6 @@ Game.prototype.playerStartAttacking = function() {
         }
     }, this.ms);
 };
-Game.prototype.enemyClosest = function(from, range) {
-    var nClosest = 500;
-    var idClosest = -1;
-    for (var i = 0; i < this.board.enemies.length; i++) {
-        var nEnemyDistance = getDistance(from, this.board.enemies[i].center);
-        if (nEnemyDistance < range && nEnemyDistance < nClosest) {
-            nClosest = nEnemyDistance;
-            idClosest = i;
-        }
-    }
-    return idClosest;
-};
-Game.prototype.enemyFurthest = function(from, range) {
-    var nFurthest = 0;
-    var idFurthest = -1;
-    for (var i = 0; i < this.board.enemies.length; i++) {
-        var nEnemyDistance = getDistance(from, this.board.enemies[i].center);
-        if (nEnemyDistance < range && nEnemyDistance > nFurthest) {
-            nFurthest = nEnemyDistance;
-            idFurthest = i;
-        }
-    }
-    return idFurthest;
-}
 Game.prototype.playerAttack = function(enemy) {
     if (this.ml > 0 || this.ll > 0) {
         if (this.ml > 0) {
@@ -413,6 +401,9 @@ Game.prototype.playerAttack = function(enemy) {
         enemy.element.remove();
         clearInterval(enemy.interval);
     }
+};
+Game.prototype.getDistance = function(from, to) {
+    return Math.sqrt(Math.pow(from.x - to.x, 2) + Math.pow(from.y - to.y, 2));
 };
 
 function Board(canvas, center, radius, side) {
@@ -642,13 +633,10 @@ function Player() {
     this.cd = 50;
     this.as = 5;
 };
-function getDistance(from, to) {
-    return Math.sqrt(Math.pow(from.x - to.x, 2) + Math.pow(from.y - to.y, 2));
-}
 function Punt(x, y) {
     this.x = x;
     this.y = y;
-}
+};
 function Hex(id, xid, yid, center, side){
     this.modifier = 0;
     this.center = center;
@@ -660,7 +648,7 @@ function Hex(id, xid, yid, center, side){
     this.connections = [];
     this.directions = [];
     this.heartConnected = false;
-}
+};
 Hex.prototype.element = function() {
     this.points = "";
     this.points += String(this.center.x) + "," + String(this.center.y - 2 * this.side) + " ";
@@ -731,7 +719,7 @@ function Rune(id){
     this.ml = 0;
     this.ll = 0;
     this.stats = [0, 10, 10, 1, 10, 5, 1, 1];// heart dam as cc cd range ml ll
-}
+};
 function Enemy(to, center) {
     this.damage = 5;
     var mod = Math.round((Math.random() + 1) * 100) / 100;
@@ -743,7 +731,7 @@ function Enemy(to, center) {
     this.sine = Math.sin(this.angleRadians);
     this.cosine = Math.cos(this.angleRadians);
     this.freeze = false;
-}
+};
 Enemy.prototype.element = function() {
     this.element = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     this.element.setAttribute('cx', this.center.x);
