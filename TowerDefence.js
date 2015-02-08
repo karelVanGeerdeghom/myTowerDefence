@@ -60,16 +60,17 @@ Game.prototype.createDefs = function() {
     this.eDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
 };
 Game.prototype.setValues = function() {
-    this.range = this.player.range * ((100 + this.board.range) / 100);
     var dam = this.player.dam * ((100 + this.board.dam) / 100);
     var cc = this.player.cc + this.board.cc;
     var cd = this.player.cd + this.board.cd;
     var totalDamage = dam * (cc * (100 + cd) / 10000) + dam * ((100 - cc) / 100);
     this.damage = Math.round(totalDamage * 100) / 100;
-    this.as = Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100;
+    this.as =  Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100;
+    this.ms = Math.round(1000 / this.as);
     this.cc = Math.round((this.player.cc + this.board.cc) * 100) / 100;
     this.cd = Math.round((this.player.cd + this.board.cd) * 100) / 100;
-    this.dps = Math.round(this.damage * this.as * 100) / 100;
+    this.range = this.player.range * ((100 + this.board.range) / 100);
+    this.dps = Math.round(this.damage * (Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100) * 100) / 100;
     this.gold = this.board.gold;
     this.chain = this.board.chain;
     this.chainEffect = this.board.chainEffect;
@@ -91,7 +92,7 @@ Game.prototype.showPlayer = function() {
     var eTotalrange = $('<p>Total Range: ' + this.range + '</p>');
     var eTotalDps = $('<p>Total DPS: ' + this.dps + '</p>');
     var eTotalDam = $('<p>Total Damage: ' + this.damage + '</p>');
-    var eTotalAs = $('<p>Total Attack Speed: ' + this.as + ' / second</p>');
+    var eTotalAs = $('<p>Total Attack Speed: 1 per ' + this.ms + 'ms | ' + this.as + '/s</p>');
     var eTotalCc = $('<p>Total Critical Chance: ' + this.cc + '</p>');
     var eTotalCd = $('<p>Total Critical Damage: ' + this.cd + '</p>');
     var eTotalGold = $('<p>Total Gold Bonus: ' + this.gold + ' %</p>');
@@ -268,19 +269,31 @@ Game.prototype.waveCreate = function() {
         var enemy = new Enemy(this.board.center, punt);
         this.board.enemies.push(enemy);
     }
+//    var punt1 = new Punt(40, 90);
+//    var enemy1 = new Enemy(this.board.center, punt1);
+//    this.board.enemies.push(enemy1);
+//    var punt2 = new Punt(-50, 100);
+//    var enemy2 = new Enemy(this.board.center, punt2);
+//    this.board.enemies.push(enemy2);
+//    var punt3 = new Punt(50, -120);
+//    var enemy3 = new Enemy(this.board.center, punt3);
+//    this.board.enemies.push(enemy3);
+//    var punt4 = new Punt(-40, -110);
+//    var enemy4 = new Enemy(this.board.center, punt4);
+//    this.board.enemies.push(enemy4);
 };
 Game.prototype.waveStart = function() {
     var center = this.board.center;
     for (var i = 0; i < this.board.enemies.length; i ++) {
         this.eSvg.appendChild(this.board.enemies[i].element());
-        this.enemyStartMoving(this.board.enemies[i], center, 3);
+        this.enemyStartMoving(this.board.enemies[i], center, 3.5);
     }
 };
 Game.prototype.enemyStartMoving = function(enemy, to, distance) {
     var me = this;
     enemy.interval = setInterval(function() {
         me.enemyMove(enemy, to, distance);
-    }, 30);
+    }, 35);
 };
 Game.prototype.enemyMove = function (enemy, to, distance) {
     var slow = 1;
@@ -292,7 +305,6 @@ Game.prototype.enemyMove = function (enemy, to, distance) {
     enemy.element.setAttribute('cy', y);
     enemy.center = from;
     if (getDistance(enemy.center, to) < 50) {
-//        console.log('hit');
         this.player.health -= enemy.damage;
         this.showPlayer();
         this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
@@ -303,28 +315,66 @@ Game.prototype.enemyMove = function (enemy, to, distance) {
 Game.prototype.playerStartAttacking = function() {
     var me = this;
     this.player.interval = setInterval(function() {
-        var nDistance = 500;
-        var nClosest = -1;
-        for (var i = 0; i < me.board.enemies.length; i++) {
-            var nEnemyDistance = getDistance(me.board.enemies[i].center, me.board.center);
-            if (nEnemyDistance < me.player.range * ((100 + me.board.range) / 100) && nEnemyDistance < nDistance) {
-                nDistance = nEnemyDistance;
-                nClosest = i;
+        var idClosest = me.enemyClosest(me.board.center, me.range);
+        if (idClosest >= 0) {
+            var oClosestPunt = new Punt(me.board.enemies[idClosest].center.x, me.board.enemies[idClosest].center.y);
+            me.board.showAttack(me.board.center, oClosestPunt, "white");
+            me.playerAttack(me.board.enemies[idClosest]);
+            if (me.chainEffect === true) {
+                var idClosestChained = me.enemyFurthest(oClosestPunt, me.range / 2);
+                if (idClosestChained >= 0) {
+                    me.board.showAttack(oClosestPunt, me.board.enemies[idClosestChained].center, "white");
+                    me.playerAttack(me.board.enemies[idClosestChained]);
+                }
             }
         }
-        if (nClosest >= 0) {
-            me.board.showAttack(me.board.enemies[nClosest]);
-            me.playerAttack(me.board.enemies[nClosest]);
+        if (me.splitEffect === true) {
+            var idFurthest = me.enemyFurthest(me.board.center, me.range);
+            if (idFurthest >= 0) {
+                var oFurthestPunt = new Punt(me.board.enemies[idFurthest].center.x, me.board.enemies[idFurthest].center.y);
+                me.board.showAttack(me.board.center, oFurthestPunt, "white");
+                me.playerAttack(me.board.enemies[idFurthest]);
+                if (me.chainEffect === true) {
+                    var idFurthestChained = me.enemyFurthest(oFurthestPunt, me.range / 2);
+                    if (idFurthestChained >= 0) {
+                        me.board.showAttack(oFurthestPunt, me.board.enemies[idFurthestChained].center, "white");
+                        me.playerAttack(me.board.enemies[idFurthestChained]);
+                    }
+                }
+            }
         }
         if (me.board.enemies.length === 0) {
             clearInterval(me.player.interval);
         }
-    }, (1000 / (me.player.as * ((100 + me.board.as) / 100))));
+    }, this.ms);
 };
+Game.prototype.enemyClosest = function(from, range) {
+    var nClosest = 500;
+    var idClosest = -1;
+    for (var i = 0; i < this.board.enemies.length; i++) {
+        var nEnemyDistance = getDistance(from, this.board.enemies[i].center);
+        if (nEnemyDistance < range && nEnemyDistance < nClosest) {
+            nClosest = nEnemyDistance;
+            idClosest = i;
+        }
+    }
+    return idClosest;
+};
+Game.prototype.enemyFurthest = function(from, range) {
+    var nFurthest = 0;
+    var idFurthest = -1;
+    for (var i = 0; i < this.board.enemies.length; i++) {
+        var nEnemyDistance = getDistance(from, this.board.enemies[i].center);
+        if (nEnemyDistance < range && nEnemyDistance > nFurthest) {
+            nFurthest = nEnemyDistance;
+            idFurthest = i;
+        }
+    }
+    return idFurthest;
+}
 Game.prototype.playerAttack = function(enemy) {
     enemy.health -= this.damage;
     if (enemy.health <= 0) {
-//        console.log('kill');
         this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
         enemy.element.remove();
         clearInterval(enemy.interval);
@@ -532,13 +582,13 @@ Board.prototype.setValues = function() {
         }
     }
 };
-Board.prototype.showAttack = function(enemy) {
+Board.prototype.showAttack = function(source, target, color) {
     var attack = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    attack.setAttribute('x1', this.center.x);
-    attack.setAttribute('y1', this.center.y);
-    attack.setAttribute('x2', enemy.center.x);
-    attack.setAttribute('y2', enemy.center.y);
-    attack.setAttribute('stroke', 'green');
+    attack.setAttribute('x1', source.x);
+    attack.setAttribute('y1', source.y);
+    attack.setAttribute('x2', target.x);
+    attack.setAttribute('y2', target.y);
+    attack.setAttribute('stroke', color);
     attack.setAttribute('stroke-width', '2px');
     this.canvas.appendChild(attack);
     setTimeout(function() {
@@ -556,7 +606,7 @@ function Player() {
     this.as = 5;
 };
 function getDistance(from, to) {
-    return Math.sqrt(Math.pow(from.x - to.x, 2) + Math.pow(from.y - to.x, 2));
+    return Math.sqrt(Math.pow(from.x - to.x, 2) + Math.pow(from.y - to.y, 2));
 }
 function Punt(x, y) {
     this.x = x;
@@ -642,7 +692,7 @@ Hex.prototype.pattern = function() {
     return this.pattern;
 };
 function Enemy(to, center) {
-    this.health = 21;
+    this.health = 33;
     this.damage = 5;
     this.radius = 10;
     this.center = center;
