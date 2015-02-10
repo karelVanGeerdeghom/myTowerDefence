@@ -10,6 +10,8 @@ $(function() {
         var board, player;
         var damage, as, ms, cc, cd, range, dps;
         var ml, ll, chain, chainEffect, slow, slowEffect, split, splitEffect;
+        var svgRange;
+        var runeTypes = ["heart", "dam", "as", "cc", "cd", "range", "ml", "ll", "chain", "slow", "split"];
 /////////////////////////////////////////////////////////////////////////////// GAME FUNCTIONS
         function initialize() {
             createSvg();
@@ -22,23 +24,21 @@ $(function() {
             board.runeCreate();
             board.hexDraw();
             board.runeDraw();
+            board.setBoardValues();
+            setGameValues();
+            showRange();
 
             $("polygon").on("click", function() {
                 var id = parseInt($(this).attr("id"));
                 var hex = board.hexes[id];
                 if (id !== board.heart) {
                     eHex.empty();
-                    board.setBoardValues();
-                    setGameValues();
                     showPlayer();
                     showHex(hex);
                 }
                 if (id === board.heart) {
                     eHex.empty();
-                    board.setBoardValues();
-                    setGameValues();
                     showPlayer();
-                    showRange();
                     showHex(hex);
                 }
             });
@@ -125,9 +125,7 @@ $(function() {
             });
         };
         function showRange() {
-            var eRange = $('#playerRange');
-            eRange.remove();
-            var svgRange = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            svgRange = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             svgRange.setAttribute('cx', board.center.x);
             svgRange.setAttribute('cy', board.center.y);
             svgRange.setAttribute('r', range);
@@ -137,6 +135,9 @@ $(function() {
             svgRange.setAttribute('id', 'playerRange');
             eSvg.appendChild(svgRange);    
         };
+        function resetRange() {
+            svgRange.setAttribute('r', range);
+        }
         function showHex(hex) {
             eHex.empty();
             if (hex.rune) {
@@ -206,7 +207,7 @@ $(function() {
             board.setBoardValues();
             setGameValues();
             showPlayer();
-            showRange();
+            resetRange();
             showHex(hex);
         };
         function runeSell(hex) {
@@ -234,7 +235,7 @@ $(function() {
             board.setBoardValues();
             setGameValues();
             showPlayer();
-            showRange();
+            resetRange();
             showHex(hex);
         };
         function runeUpgrade(hex) {
@@ -246,7 +247,7 @@ $(function() {
             board.setBoardValues();
             setGameValues();
             showPlayer();
-            showRange();
+            resetRange();
             showHex(hex);
         };
         function waveCreate() {
@@ -280,12 +281,10 @@ $(function() {
                 var x = enemy.center.x + enemy.cosine * enemy.speed * slow;
                 var y = enemy.center.y + enemy.sine * enemy.speed * slow;
                 var from = new Punt(x, y);
-                enemy.pattern.setAttribute("x", x);
-                enemy.pattern.setAttribute("y", y);
-                enemy.element.setAttribute('cx', x);
-                enemy.element.setAttribute('cy', y);
                 enemy.element.setAttribute('x', x);
                 enemy.element.setAttribute('y', y);
+                enemy.pattern.setAttribute("x", x);
+                enemy.pattern.setAttribute("y", y);
                 enemy.center = from;
                 enemy.animate += 1;
                 if (enemy.animate % Math.floor(enemy.mod * 5) === 0) {
@@ -408,9 +407,8 @@ $(function() {
             this.as = 5;
         };
         function Rune(id){
-            this.runeTypes = ["heart", "dam", "as", "cc", "cd", "range", "ml", "ll", "chain", "slow", "split"];
             this.id = id;
-            this.name = this.runeTypes[id];
+            this.name = runeTypes[id];
             this.tier = 1;
             this.dam = 0;
             this.as = 0;
@@ -729,8 +727,6 @@ $(function() {
        };
         Enemy.prototype.element = function() {
            this.element = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-           this.element.setAttribute('cx', this.center.x);
-           this.element.setAttribute('cy', this.center.y);
            this.element.setAttribute('x', this.center.x);
            this.element.setAttribute('y', this.center.y);
            this.element.setAttribute('width', this.size * 2 * this.mod);
