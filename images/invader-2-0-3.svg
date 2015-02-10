@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="13"
+   height="13"
+   id="svg4210"
+   version="1.1"
+   inkscape:version="0.48.5 r10040"
+   sodipodi:docname="New document 12">
+  <defs
+     id="defs4212" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="31.392433"
+     inkscape:cx="7.651795"
+     inkscape:cy="5.2376842"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:grid-bbox="true"
+     inkscape:document-units="px"
+     inkscape:window-width="1920"
+     inkscape:window-height="1058"
+     inkscape:window-x="1272"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid4262"
+       empspacing="5"
+       visible="true"
+       enabled="true"
+       snapvisiblegridlinesonly="true" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata4215">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     transform="translate(0,-3)">
+    <path
+       style="fill:#ffffff;stroke:none"
+       d="M 7 2 L 7 2.5 L 7 3 L 6.5 3 L 6 3 L 6 3.5 L 6 4 L 5.5 4 L 5 4 L 5 4.5 L 5 5 L 4.5 5 L 4 5 L 4 5.5 L 4 6 L 4 6.5 L 4 7 L 4.5 7 L 5 7 L 5 7.5 L 5 8 L 5.5 8 L 6 8 L 6 7.5 L 6 7 L 6.5 7 L 7 7 L 7 7.5 L 7 8 L 7.5 8 L 8 8 L 8.5 8 L 9 8 L 9 7.5 L 9 7 L 9.5 7 L 10 7 L 10 7.5 L 10 8 L 10.5 8 L 11 8 L 11 7.5 L 11 7 L 11.5 7 L 12 7 L 12 6.5 L 12 6 L 12 5.5 L 12 5 L 11.5 5 L 11 5 L 11 4.5 L 11 4 L 10.5 4 L 10 4 L 10 3.5 L 10 3 L 9.5 3 L 9 3 L 9 2.5 L 9 2 L 8.5 2 L 8 2 L 7.5 2 L 7 2 z M 11 8 L 11 8.5 L 11 9 L 11.5 9 L 12 9 L 12 8.5 L 12 8 L 11.5 8 L 11 8 z M 11 9 L 10.5 9 L 10 9 L 10 9.5 L 10 10 L 10.5 10 L 11 10 L 11 9.5 L 11 9 z M 5 8 L 4.5 8 L 4 8 L 4 8.5 L 4 9 L 4.5 9 L 5 9 L 5 8.5 L 5 8 z M 5 9 L 5 9.5 L 5 10 L 5.5 10 L 6 10 L 6 9.5 L 6 9 L 5.5 9 L 5 9 z M 6 5 L 6.5 5 L 7 5 L 7 5.5 L 7 6 L 6.5 6 L 6 6 L 6 5.5 L 6 5 z M 9 5 L 9.5 5 L 10 5 L 10 5.5 L 10 6 L 9.5 6 L 9 6 L 9 5.5 L 9 5 z "
+       transform="translate(0,3)"
+       id="path3322-3-2" />
+  </g>
+</svg>

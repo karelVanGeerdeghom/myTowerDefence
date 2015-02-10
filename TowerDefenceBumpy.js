@@ -262,7 +262,7 @@ Game.prototype.waveCreate = function() {
         var sine = Math.sin(randomAngle);
         var cosine = Math.cos(randomAngle);
         var punt = new Punt(sine * (600), cosine * (600));
-        var enemy = new Enemy(this.board.center, punt);
+        var enemy = new Enemy(i, this.board.center, punt);
         this.board.enemies.push(enemy);
     }
 };
@@ -270,6 +270,7 @@ Game.prototype.waveStart = function() {
     var center = this.board.center;
     for (var i = 0; i < this.board.enemies.length; i ++) {
         this.eSvg.appendChild(this.board.enemies[i].element());
+        this.eDefs.appendChild(this.board.enemies[i].pattern());
         this.enemyStartMoving(this.board.enemies[i], center);
     }
 };
@@ -277,23 +278,33 @@ Game.prototype.enemyStartMoving = function(enemy, to, distance) {
     var me = this;
     enemy.interval = setInterval(function() {
         me.enemyMove(enemy, to);
-    }, 25);
+    }, 250);
 };
 Game.prototype.enemyMove = function (enemy, to) {
-    if (!enemy.freeze) {
+    enemy.freeze -= 1;
+    if (enemy.freeze <= 0) {
         var slow = 1;
         if (this.slowEffect === true && this.getDistance(enemy.center, to) <= this.range) { slow = 0.5; }
         var x = enemy.center.x + enemy.cosine * enemy.speed * slow;
         var y = enemy.center.y + enemy.sine * enemy.speed * slow;
         var from = new Punt(x, y);
+        enemy.pattern.setAttribute("x", x);
+        enemy.pattern.setAttribute("y", y);
         enemy.element.setAttribute('cx', x);
         enemy.element.setAttribute('cy', y);
         enemy.element.setAttribute('x', x);
         enemy.element.setAttribute('y', y);
         enemy.center = from;
+        enemy.step += 1;
+        enemy.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-0-' + enemy.direction + '-' + enemy.step % 6 + '.svg');
+//        delete enemy["pattern"];
+
+//        this.eDefs.appendChild(enemy.pattern());
         if (this.getDistance(enemy.center, to) < 50) {
             this.player.health -= enemy.damage;
 //            this.showPlayer();
+            delete enemy["pattern"];
+            $('#enemy' + enemy.id).remove();
             this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
             enemy.element.remove();
             clearInterval(enemy.interval);
@@ -326,30 +337,20 @@ Game.prototype.enemyFurthest = function(from, range) {
 };
 Game.prototype.playerStartAttacking = function() {
     var me = this;
-    var freezeTime = 100;
+    var freezeCount = 0;
     var color = "white";
     var chainColor = "white";
     this.player.interval = setInterval(function() {
         var idClosest = me.enemyClosest(me.board.center, me.range);
         if (idClosest >= 0) {
             var oClosestPunt = new Punt(me.board.enemies[idClosest].center.x, me.board.enemies[idClosest].center.y);
-            me.board.enemies[idClosest].freeze = true;
-            setTimeout(function() {
-                if (me.board.enemies[idClosest]) {
-                    me.board.enemies[idClosest].freeze = false;
-                }
-            }, freezeTime);
+            me.board.enemies[idClosest].freeze = freezeCount;
             me.board.showAttack(me.board.center, oClosestPunt, "green");
             me.playerAttack(me.board.enemies[idClosest]);
             if (me.chainEffect === true) {
                 var idClosestChained = me.enemyFurthest(oClosestPunt, me.range / 2);
                 if (idClosestChained >= 0) {
-                    me.board.enemies[idClosestChained].freeze = true;
-                    setTimeout(function() {
-                        if (me.board.enemies[idClosestChained]) {
-                            me.board.enemies[idClosestChained].freeze = false;
-                        }
-                    }, freezeTime);
+                    me.board.enemies[idClosestChained].freeze = freezeCount;
                     me.board.showAttack(oClosestPunt, me.board.enemies[idClosestChained].center, "white");
                     me.playerAttack(me.board.enemies[idClosestChained]);
                 }
@@ -359,23 +360,13 @@ Game.prototype.playerStartAttacking = function() {
             var idFurthest = me.enemyFurthest(me.board.center, me.range);
             if (idFurthest >= 0) {
                 var oFurthestPunt = new Punt(me.board.enemies[idFurthest].center.x, me.board.enemies[idFurthest].center.y);
-                me.board.enemies[idFurthest].freeze = true;
-                setTimeout(function() {
-                    if (me.board.enemies[idFurthest]) {
-                        me.board.enemies[idFurthest].freeze = false;
-                    }
-                }, freezeTime);
+                me.board.enemies[idFurthest].freeze = freezeCount;
                 me.board.showAttack(me.board.center, oFurthestPunt, "blue");
                 me.playerAttack(me.board.enemies[idFurthest]);
                 if (me.chainEffect === true) {
                     var idFurthestChained = me.enemyFurthest(oFurthestPunt, me.range / 2);
                     if (idFurthestChained >= 0) {
-                        me.board.enemies[idFurthestChained].freeze = true;
-                        setTimeout(function() {
-                            if (me.board.enemies[idFurthestChained]) {
-                                me.board.enemies[idFurthestChained].freeze = false;
-                            }
-                        }, freezeTime);
+                        me.board.enemies[idFurthestChained].freeze = freezeCount;
                         me.board.showAttack(oFurthestPunt, me.board.enemies[idFurthestChained].center, "white");
                         me.playerAttack(me.board.enemies[idFurthestChained]);
                     }
@@ -400,6 +391,8 @@ Game.prototype.playerAttack = function(enemy) {
     enemy.health -= this.damage;
     if (enemy.health <= 0) {
         this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
+        delete enemy["pattern"];
+        $('#enemy' + enemy.id).remove();
         enemy.element.remove();
         clearInterval(enemy.interval);
     }
@@ -723,17 +716,21 @@ function Rune(id){
     this.ll = 0;
     this.stats = [0, 10, 10, 1, 10, 5, 1, 1];// heart dam as cc cd range ml ll
 };
-function Enemy(to, center) {
+function Enemy(id, to, center) {
+    this.id = id;
     this.damage = 5;
     this.mod = Math.random() + 1;
     this.health = 15 * this.mod;
     this.radius = 10 * this.mod;
-    this.speed = 5 / this.mod;
+    this.speed = 25 / this.mod;
     this.center = center;
     this.angleRadians = Math.atan2(to.y - this.center.y, to.x - this.center.x);
+    this.angleDegrees = Math.atan2(to.y - this.center.y, to.x - this.center.x) * 180 / Math.PI;
     this.sine = Math.sin(this.angleRadians);
     this.cosine = Math.cos(this.angleRadians);
-    this.freeze = false;
+    this.direction = Math.round(Math.random());;
+    this.step = 0;
+    this.freeze = 0;
 };
 Enemy.prototype.element = function() {
 //    this.element = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
@@ -745,23 +742,36 @@ Enemy.prototype.element = function() {
 //    this.element.setAttribute('fill', 'darkred');
 //    this.element.setAttribute('id', 'enemy');
     
-    this.element = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+    this.element = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     this.element.setAttribute('cx', this.center.x);
     this.element.setAttribute('cy', this.center.y);
     this.element.setAttribute('x', this.center.x);
     this.element.setAttribute('y', this.center.y);
-    this.element.setAttribute('width', 44 * this.mod);
-    this.element.setAttribute('height', 32 * this.mod);
-    this.element.setAttribute('transform', 'translate(-' + 22 * this.mod + ' -' + 16 * this.mod + ')');
-    
-//    this.pattern.setAttribute("x", this.center.x - 1.8 * this.side);
-//    this.pattern.setAttribute("y", this.center.y - 1.8 * this.side);
-//    this.pattern.setAttribute("width", this.side * 3.6);
-//    this.pattern.setAttribute("height", this.side * 3.6);
-    
-    this.element.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader.png');
+    this.element.setAttribute('width', 40 * this.mod);
+    this.element.setAttribute('height', 40 * this.mod);
+    this.element.setAttribute('transform', 'translate(-' + 20 * this.mod + ' -' + 20 * this.mod + ')');
     this.element.setAttribute('id', 'enemy');
     
     return this.element;
 };
-//Enemy.prototype.pattern =
+Enemy.prototype.pattern = function() {
+    this.pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+    this.pattern.setAttribute("id", "enemy" + this.id);
+    this.pattern.setAttribute("patternUnits", "userSpaceOnUse");
+    this.pattern.setAttribute("x", this.center.x + this.mod * 20);
+    this.pattern.setAttribute("y", this.center.y + this.mod * 20);
+    this.pattern.setAttribute("width", this.mod * 40);
+    this.pattern.setAttribute("height", this.mod * 40);
+    
+    this.image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+    this.image.setAttribute("width", 40 * this.mod);
+    this.image.setAttribute("height", 40 * this.mod);
+    this.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-0-' + this.direction + '-' + this.step % 6 + '.svg');
+    this.image.setAttribute('transform', 'rotate(' + parseFloat(this.angleDegrees - 90) + ' ' + 20 * this.mod + ' ' + 20 * this.mod + ')');
+
+    this.pattern.appendChild(this.image);
+    
+    this.element.setAttribute("fill", "url(#enemy" + this.id + ")");
+    
+    return this.pattern;
+};
