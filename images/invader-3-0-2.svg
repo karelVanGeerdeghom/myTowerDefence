@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="14"
+   height="14"
+   id="svg3873"
+   version="1.1"
+   inkscape:version="0.48.5 r10040"
+   sodipodi:docname="invader-3-0-0.svg">
+  <defs
+     id="defs3875" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="31.392433"
+     inkscape:cx="8.8284843"
+     inkscape:cy="5.757291"
+     inkscape:current-layer="layer1"
+     showgrid="true"
+     inkscape:grid-bbox="true"
+     inkscape:document-units="px"
+     inkscape:window-width="1920"
+     inkscape:window-height="1058"
+     inkscape:window-x="1272"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid3881"
+       empspacing="5"
+       visible="true"
+       enabled="true"
+       snapvisiblegridlinesonly="true" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata3878">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     transform="translate(0,-2)">
+    <path
+       style="fill:#ffffff;stroke:none"
+       d="M 4,5 4,5.5 4,6 3.5,6 3,6 3,6.5 3,7 3,7.5 3,8 3.5,8 4,8 4.5,8 5,8 5.5,8 6,8 6,8.5 6,9 6.5,9 7,9 7.5,9 8,9 8.5,9 9,9 9,8.5 9,8 9.5,8 10,8 10.5,8 11,8 11.5,8 12,8 12,7.5 12,7 12,6.5 12,6 11.5,6 11,6 11,5.5 11,5 10.5,5 10,5 9.5,5 9,5 8.5,5 8,5 7.5,5 7,5 6.5,5 6,5 5.5,5 5,5 4.5,5 4,5 z M 9,9 9,9.5 9,10 9.5,10 10,10 10,9.5 10,9 9.5,9 9,9 z m 1,1 0,0.5 0,0.5 0.5,0 0.5,0 0,-0.5 0,-0.5 -0.5,0 -0.5,0 z m 1,1 0,0.5 0,0.5 0.5,0 0.5,0 0,-0.5 0,-0.5 -0.5,0 -0.5,0 z M 6,9 5.5,9 5,9 5,9.5 5,10 5.5,10 6,10 6,9.5 6,9 z M 5,10 4.5,10 4,10 4,10.5 4,11 4.5,11 5,11 5,10.5 5,10 z M 4,11 3.5,11 3,11 3,11.5 3,12 3.5,12 4,12 4,11.5 4,11 z M 5,6 5.5,6 6,6 6.5,6 7,6 7,6.5 7,7 6.5,7 6,7 5.5,7 5,7 5,6.5 5,6 z M 8,6 8.5,6 9,6 9.5,6 10,6 10,6.5 10,7 9.5,7 9,7 8.5,7 8,7 8,6.5 8,6 z"
+       id="path3322-3-2-6"
+       inkscape:connector-curvature="0" />
+  </g>
+</svg>

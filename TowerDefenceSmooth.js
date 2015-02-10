@@ -730,7 +730,7 @@ function Enemy(id, to, center) {
     this.sine = Math.sin(this.angleRadians);
     this.cosine = Math.cos(this.angleRadians);
     this.direction = Math.round(Math.random());
-    this.type = Math.floor(Math.random() * 3);
+    this.type = Math.floor(Math.random() * 4);
     this.animate = 0;
     this.step = 0;
     this.freeze = 0;
