@@ -257,7 +257,7 @@ Game.prototype.runeUpgrade = function(hex) {
 };
 Game.prototype.waveCreate = function() {
     this.board.enemies = [];
-    for (var i = 0; i < 20; i++) {
+    for (var i = 0; i < 40; i++) {
         var randomAngle = Math.random() * 2 * Math.PI;
         var sine = Math.sin(randomAngle);
         var cosine = Math.cos(randomAngle);
@@ -731,6 +731,7 @@ function Enemy(id, to, center) {
     this.cosine = Math.cos(this.angleRadians);
     this.direction = Math.round(Math.random());
     this.type = Math.floor(Math.random() * 4);
+    this.size = 17;
     this.animate = 0;
     this.step = 0;
     this.freeze = 0;
@@ -741,9 +742,9 @@ Enemy.prototype.element = function() {
     this.element.setAttribute('cy', this.center.y);
     this.element.setAttribute('x', this.center.x);
     this.element.setAttribute('y', this.center.y);
-    this.element.setAttribute('width', 30 * this.mod);
-    this.element.setAttribute('height', 30 * this.mod);
-    this.element.setAttribute('transform', 'translate(-' + 15 * this.mod + ' -' + 15 * this.mod + ')');
+    this.element.setAttribute('width', this.size * 2 * this.mod);
+    this.element.setAttribute('height', this.size * 2 * this.mod);
+    this.element.setAttribute('transform', 'translate(-' + this.size * this.mod + ' -' + this.size * this.mod + ')');
     this.element.setAttribute('id', 'enemy');
     
     return this.element;
@@ -754,15 +755,15 @@ Enemy.prototype.pattern = function() {
     this.pattern.setAttribute("patternUnits", "userSpaceOnUse");
     this.pattern.setAttribute("x", this.center.x + this.mod * 15);
     this.pattern.setAttribute("y", this.center.y + this.mod * 15);
-    this.pattern.setAttribute("width", this.mod * 30);
-    this.pattern.setAttribute("height", this.mod * 30);
+    this.pattern.setAttribute("width", this.size * 2 * this.mod);
+    this.pattern.setAttribute("height", this.size * 2 * this.mod);
     
     this.image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-    this.image.setAttribute("width", 30 * this.mod);
-    this.image.setAttribute("height", 30 * this.mod);
+    this.image.setAttribute("width", this.size * 2 * this.mod);
+    this.image.setAttribute("height", this.size * 2 * this.mod);
     this.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + this.type + '-' + this.direction + '-' + this.step % 6 + '.svg');
 //    this.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + this.type + '-' + this.step % 2 + '.svg');
-    this.image.setAttribute('transform', 'rotate(' + parseFloat(this.angleDegrees - 90) + ' ' + 15 * this.mod + ' ' + 15 * this.mod + ')');
+    this.image.setAttribute('transform', 'rotate(' + parseFloat(this.angleDegrees - 90) + ' ' + this.size * this.mod + ' ' + this.size * this.mod + ')');
 
     this.pattern.appendChild(this.image);
     
