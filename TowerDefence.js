@@ -42,7 +42,7 @@ Game.prototype.init = function() {
     this.eSvg.appendChild(this.eDefs);
     
     this.center = new Punt(0, 0);
-    this.board = new Board(this.eSvg, this.center, 4, 24);
+    this.board = new Board(this.eSvg, this.center, 3, 32);
     this.board.hexCreate();
     this.board.runeCreate();
     this.board.hexDraw();
@@ -192,7 +192,7 @@ Game.prototype.showHex = function(hex) {
         $(eSell).click(function() {
             me.runeSell(hex);
         });
-        if (hex.tier < 4 && hex.rune.id < 8) {
+        if (hex.rune.tier < 4 && hex.rune.id < 8) {
             this.eHex.append(eUpgrade);
             $(eUpgrade).click(function() { me.runeUpgrade(hex); });
         }
@@ -277,7 +277,7 @@ Game.prototype.enemyStartMoving = function(enemy, to, distance) {
     var me = this;
     enemy.interval = setInterval(function() {
         me.enemyMove(enemy, to);
-    }, 35);
+    }, 25);
 };
 Game.prototype.enemyMove = function (enemy, to) {
     if (!enemy.freeze) {
@@ -288,10 +288,12 @@ Game.prototype.enemyMove = function (enemy, to) {
         var from = new Punt(x, y);
         enemy.element.setAttribute('cx', x);
         enemy.element.setAttribute('cy', y);
+        enemy.element.setAttribute('x', x);
+        enemy.element.setAttribute('y', y);
         enemy.center = from;
         if (this.getDistance(enemy.center, to) < 50) {
             this.player.health -= enemy.damage;
-            this.showPlayer();
+//            this.showPlayer();
             this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
             enemy.element.remove();
             clearInterval(enemy.interval);
@@ -393,7 +395,7 @@ Game.prototype.playerAttack = function(enemy) {
         if (this.ll > 0) {
             this.player.health += this.damage * (this.ll / 100);
         }
-        this.showPlayer();
+//        this.showPlayer();
     }
     enemy.health -= this.damage;
     if (enemy.health <= 0) {
@@ -626,7 +628,7 @@ Board.prototype.showAttack = function(source, target, color) {
 
 function Player() {
     this.health = 100;
-    this.range = 150;
+    this.range = 250;
     this.mana = 1000;
     this.dam = 10;
     this.cc = 5;
@@ -684,6 +686,7 @@ Hex.prototype.pattern = function() {
     iRune.setAttribute("width", this.side * 3.6);
     iRune.setAttribute("height", this.side * 3.6);
     iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + this.rune.name + tier + '.png');
+
     this.pattern.appendChild(iRune);
     
     if (this.connections.length > 0 || this.rune.id === 0) {
@@ -722,10 +725,10 @@ function Rune(id){
 };
 function Enemy(to, center) {
     this.damage = 5;
-    var mod = Math.round((Math.random() + 1) * 100) / 100;
-    this.health = 15 * mod;
-    this.radius = 10 * mod;
-    this.speed = 5 / mod;
+    this.mod = Math.random() + 1;
+    this.health = 15 * this.mod;
+    this.radius = 10 * this.mod;
+    this.speed = 5 / this.mod;
     this.center = center;
     this.angleRadians = Math.atan2(to.y - this.center.y, to.x - this.center.x);
     this.sine = Math.sin(this.angleRadians);
@@ -733,14 +736,32 @@ function Enemy(to, center) {
     this.freeze = false;
 };
 Enemy.prototype.element = function() {
-    this.element = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+//    this.element = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+//    this.element.setAttribute('cx', this.center.x);
+//    this.element.setAttribute('cy', this.center.y);
+//    this.element.setAttribute('r', this.radius);
+//    this.element.setAttribute('stroke', 'red');
+//    this.element.setAttribute('stroke-width', '1px');
+//    this.element.setAttribute('fill', 'darkred');
+//    this.element.setAttribute('id', 'enemy');
+    
+    this.element = document.createElementNS('http://www.w3.org/2000/svg', 'image');
     this.element.setAttribute('cx', this.center.x);
     this.element.setAttribute('cy', this.center.y);
-    this.element.setAttribute('r', this.radius);
-    this.element.setAttribute('stroke', 'red');
-    this.element.setAttribute('stroke-width', '1px');
-    this.element.setAttribute('fill', 'darkred');
+    this.element.setAttribute('x', this.center.x);
+    this.element.setAttribute('y', this.center.y);
+    this.element.setAttribute('width', 44 * this.mod);
+    this.element.setAttribute('height', 32 * this.mod);
+    this.element.setAttribute('transform', 'translate(-' + 22 * this.mod + ' -' + 16 * this.mod + ')');
+    
+//    this.pattern.setAttribute("x", this.center.x - 1.8 * this.side);
+//    this.pattern.setAttribute("y", this.center.y - 1.8 * this.side);
+//    this.pattern.setAttribute("width", this.side * 3.6);
+//    this.pattern.setAttribute("height", this.side * 3.6);
+    
+    this.element.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader.png');
     this.element.setAttribute('id', 'enemy');
     
     return this.element;
 };
+//Enemy.prototype.pattern =
