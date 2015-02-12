@@ -4,40 +4,64 @@ var myGame = (function() {
     var oGame;
     var oViews = {
         player: {
-            "health": "Player Health: ",
-            "mana": "Player Mana: ",
-            "range": "Player Damage: ",
-            "dam": "Player Attack Speed: ",
-            "as": "Player Attack Speed: ",
-            "cc": "Player Critical Chance: ",
-            "cd": "Player  Critical Damage: "
-
+            elements: {
+                "health": "Player Health: ",
+                "mana": "Player Mana: ",
+                "range": "Player Range: ",
+                "dam": "Player Damage: ",
+                "as": "Player Attack Speed: ",
+                "cc": "Player Critical Chance: ",
+                "cd": "Player  Critical Damage: "
+            },
+            buttons: {}
         },
         tower: {
-            "dps": "Tower DPS: ",
-            "range": "Tower Range: ",
-            "dam": "Tower Damage: ",
-            "as": "Tower Attack Speed: ",
-            "cc": "Tower Critical Chance: ",
-            "cd": "Tower  Critical Damage: ",
-            "ml": "Tower Lifeleech: ",
-            "ll": "Tower Manaleech: ",
-            "chainEffect": "Chaining: ",
-            "splitEffect": "Splitting: ",
-            "slowEffect": "Slowing: "
+            elements: {
+                "dps": "Tower DPS: ",
+                "range": "Tower Range: ",
+                "dam": "Tower Damage: ",
+                "as": "Tower Attack Speed: ",
+                "cc": "Tower Critical Chance: ",
+                "cd": "Tower  Critical Damage: ",
+                "ml": "Tower Lifeleech: ",
+                "ll": "Tower Manaleech: ",
+                "chainEffect": "Chaining: ",
+                "splitEffect": "Splitting: ",
+                "slowEffect": "Slowing: "
+            },
+            buttons: {}
         },
         hex: {
-            "range": "Range",
-            "dam": "Damage",
-            "as": "Attack Speed",
-            "cc": "Critical Chance",
-            "cd": " Critical Damage",
-            "ml": "Lifeleech",
-            "ll": "Manaleech",
-            "chainEffect": "Chaining",
-            "splitEffect": "Splitting",
-            "slowEffect": "Slowing"
+            elements: {
+                "range": "Range"
+            },
+            buttons: {
+                "range": "Range",
+                "dam": "Damage",
+                "as": "Attack Speed",
+                "cc": "Critical Chance",
+                "cd": " Critical Damage",
+                "ll": "Lifeleech",
+                "ml": "Manaleech",
+                "chain": "Chaining",
+                "split": "Splitting",
+                "slow": "Slowing"
+            }
         }
+    };
+    var oSettings =  {
+        "size": 800,
+        "radius": 4,
+        "side": 24,
+        "health": 100,
+        "mana": 200,
+        "range": 150,
+        "dam": 10,
+        "as": 5,
+        "cc": 5,
+        "cd": 50,
+        "runeTypes": ["tower", "dam", "as", "cc", "cd", "range", "ml", "ll", "chain", "slow", "split"],
+        "runeStats": [0, 10, 10, 1, 10, 5, 1, 1]// tower dam as cc cd range ml ll
     };
     var playerController = new Controller('player');
     var towerController = new Controller('tower');
@@ -71,22 +95,30 @@ var myGame = (function() {
         oGame.create();
         oGame.board.setValues();
         oGame.setValues();
-        playerController.init('player');
+        playerController.init('player', 'game');
         playerController.createAllStats();
         playerController.showAllStats();
-        towerController.init('tower');
+        towerController.init('tower', 'game');
         towerController.createAllStats();
         towerController.showAllStats();
-        hexController.init('hex');
+        hexController.init('hex', 'rune');
         oGame.showRange();
 
-        $("polygon").on("click", function() {
-            var id = parseInt($(this).attr("id"));
-            var hex = oGame.board.hexes[id];
-            if (id !== oGame.board.heart) {
-                hexController.createAllButtons(hex);
-            }
-        });
+        var hexes = document.getElementsByTagName("polygon");
+        for (var i = 0; i < hexes.length; i++) {
+            hexes[i].addEventListener("click", function() {
+                if (this.id !== oGame.board.tower) {
+                    hexController.createAllButtons(this);
+                }
+            });
+        }
+    };
+    var buyRune = function() {
+        var nId = this.id.split("-")[1];
+        var nStat = this.id.split("-")[2];
+        var runeId = oSettings.runeTypes.indexOf(nStat);
+        
+        oGame.runeBuy(runeId, oGame.board.hexes[nId]);
     };
 
     function Game(eCanvas, ePlayer, eHex) {
@@ -103,7 +135,7 @@ var myGame = (function() {
 
         this.center = new Punt(0, 0);
         this.tower = new Tower();
-        this.board = new Board(this.eSvg, this.center, 3, 32);
+        this.board = new Board(this.eSvg, this.center, oSettings.radius, oSettings.side);
         this.board.hexCreate();
         this.board.runeCreate();
         this.board.hexDraw();
@@ -112,9 +144,9 @@ var myGame = (function() {
     Game.prototype.createSvg = function() {
         this.eSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         this.eSvg.setAttributeNS('http://www.w3.org/2000/svg','xlink','http://www.w3.org/1999/xlink');
-        this.eSvg.setAttributeNS(null, "width", 800);
-        this.eSvg.setAttributeNS(null, "height", 800);
-        this.eSvg.setAttributeNS(null, "viewBox", "-400 -400 800 800");
+        this.eSvg.setAttributeNS(null, "width", oSettings.size);
+        this.eSvg.setAttributeNS(null, "height", oSettings.size);
+        this.eSvg.setAttributeNS(null, "viewBox", "-" + oSettings.size / 2 + " -" + oSettings.size / 2 + " " + oSettings.size + " " + oSettings.size + "");
     };
     Game.prototype.createDefs = function() {
         this.eDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
@@ -160,7 +192,7 @@ var myGame = (function() {
         if (hex.rune) {
             var eRune = $('<p>Rune: ' + hex.rune.name + '</p>');
             var eTier = $('<p>Tier: ' + hex.rune.tier + '</p>');
-            var eHeartConnected = $('<p>Connected: ' + hex.heartConnected + '</p>');
+            var eHeartConnected = $('<p>Connected: ' + hex.towerConnected + '</p>');
             this.eHex.append(eRune).append(eTier).append(eHeartConnected);
         }
         var me = this;
@@ -215,7 +247,7 @@ var myGame = (function() {
         hex.rune = new Rune(id);
         if (this.board.hexCheckConnected(hex)) {
             hex.rune.tier = 1;
-            hex.heartConnected = true;
+            hex.towerConnected = true;
         }
         this.board.hexCheckDisconnected(hex);
         this.board.runeRemove();
@@ -230,16 +262,16 @@ var myGame = (function() {
         delete hex.rune;
         hex.element.setAttribute("fill", "black");
         for (var i = 0; i < this.board.hexes.length; i++) {
-            if (i !== this.board.heart) {
-                this.board.hexes[i].heartConnected = false;
+            if (i !== this.board.tower) {
+                this.board.hexes[i].towerConnected = false;
             }
             this.board.hexes[i].connections = [];
             this.board.hexes[i].directions = [];
         }
         for (var i = 0; i < this.board.hexes.length; i++) {
-            if (this.board.hexes[i].rune && i !== this.board.heart) {
+            if (this.board.hexes[i].rune && i !== this.board.tower) {
                 if (this.board.hexCheckConnected(this.board.hexes[i])) {
-                    this.board.hexes[i].heartConnected = true;
+                    this.board.hexes[i].towerConnected = true;
                 }
                 this.board.hexCheckDisconnected(this.board.hexes[i]);
             }
@@ -435,9 +467,9 @@ var myGame = (function() {
                 var punt = new Punt(x + this.height * (2 * i + offSet), y + 3 * j * this.side);
                 var hex = new Hex(this.hexes.length, i + xId, j, punt, this.side);
                 if (i === this.radius && j === this.radius) {
-                    this.heart = this.hexes.length;
+                    this.tower = this.hexes.length;
                     hex.rune = new Rune(0);
-                    hex.heartConnected = true;
+                    hex.towerConnected = true;
                 }
                 this.hexes.push(hex);
             }
@@ -452,7 +484,7 @@ var myGame = (function() {
         for (var i = 0; i < this.hexes.length; i++ ) {
             for (var j = 0; j < this.hexes.length; j++ ) {
                 if (this.hexes[i].rune && this.hexes[j].rune) {
-                    if (this.hexes[i].heartConnected === true && this.hexes[j].heartConnected === true) {
+                    if (this.hexes[i].towerConnected === true && this.hexes[j].towerConnected === true) {
                         if(this.hexes[i].xid == this.hexes[j].xid - 1 && this.hexes[i].yid == this.hexes[j].yid) {
                             if (this.hexes[i].connections.indexOf(j) === -1) { this.hexes[i].connections.push(j); }
                             if (this.hexes[i].directions.indexOf(1) === -1) { this.hexes[i].directions.push(1); }
@@ -486,7 +518,7 @@ var myGame = (function() {
         for (var i = 0; i < this.hexes.length; i++ ) {
             if ((Math.abs(hex.xid - this.hexes[i].xid) < 2) && (Math.abs(hex.yid - this.hexes[i].yid) < 2)) {
                 if (Math.abs(hex.xid + hex.yid - (this.hexes[i].xid + this.hexes[i].yid)) === Math.abs(hex.xid - this.hexes[i].xid) + Math.abs(hex.yid - this.hexes[i].yid)) {
-                    if(this.hexes[i].heartConnected === true) {
+                    if(this.hexes[i].towerConnected === true) {
                         return true;
                     }
                 }
@@ -498,8 +530,8 @@ var myGame = (function() {
         for (var i = 0; i < this.hexes.length; i++ ) {
             if ((Math.abs(hex.xid - this.hexes[i].xid) < 2) && (Math.abs(hex.yid - this.hexes[i].yid) < 2)) {
                 if (Math.abs(hex.xid + hex.yid - (this.hexes[i].xid + this.hexes[i].yid)) === Math.abs(hex.xid - this.hexes[i].xid) + Math.abs(hex.yid - this.hexes[i].yid)) {
-                    if (this.hexes[i].rune && this.hexes[i].heartConnected === false && hex.heartConnected === true) {
-                        this.hexes[i].heartConnected = true;
+                    if (this.hexes[i].rune && this.hexes[i].towerConnected === false && hex.towerConnected === true) {
+                        this.hexes[i].towerConnected = true;
                         this.hexCheckDisconnected(this.hexes[i]);
                     }
                 }
@@ -582,7 +614,7 @@ var myGame = (function() {
         this.split = false;
         this.splitEffect = false;
         for (var i = 0; i < this.hexes.length; i++) {
-            if (this.hexes[i].rune && this.heart !== i) {
+            if (this.hexes[i].rune && this.tower !== i) {
                 var hex = this.hexes[i];
                 var asc;
                 var desc;
@@ -604,15 +636,15 @@ var myGame = (function() {
                 this.ll += hex.rune.ll * desc;
                 if (hex.rune.chain === true) {
                     this.chain = true;
-                    if (hex.heartConnected === true) { this.chainEffect = true; }
+                    if (hex.towerConnected === true) { this.chainEffect = true; }
                 }
                 if (hex.rune.slow === true) {
                     this.slow = true;
-                    if (hex.heartConnected === true) { this.slowEffect = true; }
+                    if (hex.towerConnected === true) { this.slowEffect = true; }
                 }
                 if (hex.rune.split === true) {
                     this.split = true;
-                    if (hex.heartConnected === true) { this.splitEffect = true; }
+                    if (hex.towerConnected === true) { this.splitEffect = true; }
                 }
             }
         }
@@ -633,13 +665,13 @@ var myGame = (function() {
 
     function Tower() {};
     function Player() {
-        this.health = 100;
-        this.range = 250;
-        this.mana = 1000;
-        this.dam = 10;
-        this.cc = 5;
-        this.cd = 50;
-        this.as = 5;
+        this.health = oSettings.health;
+        this.mana = oSettings.mana;
+        this.range = oSettings.range;
+        this.dam = oSettings.dam;
+        this.as = oSettings.as;
+        this.cc = oSettings.cc;
+        this.cd = oSettings.cd;
     };
     function Punt(x, y) {
         this.x = x;
@@ -655,7 +687,7 @@ var myGame = (function() {
         this.yid = yid;
         this.connections = [];
         this.directions = [];
-        this.heartConnected = false;
+        this.towerConnected = false;
     };
     Hex.prototype.element = function() {
         this.points = "";
@@ -686,7 +718,7 @@ var myGame = (function() {
         this.pattern.setAttribute("height", this.side * 3.6);
 
         var tier = this.rune.tier;
-        if (this.heartConnected === false) { tier = 0; }
+        if (this.towerConnected === false) { tier = 0; }
 
         var iRune = document.createElementNS('http://www.w3.org/2000/svg', 'image');
         iRune.setAttribute("width", this.side * 3.6);
@@ -716,9 +748,9 @@ var myGame = (function() {
         return this.pattern;
     };
     function Rune(id){
-        this.runeTypes = ["heart", "dam", "as", "cc", "cd", "range", "ml", "ll", "chain", "slow", "split"];
+        this.stats = oSettings.runeStats;
         this.id = id;
-        this.name = this.runeTypes[id];
+        this.name = oSettings.runeTypes[id];
         this.tier = 1;
         this.dam = 0;
         this.as = 0;
@@ -727,7 +759,6 @@ var myGame = (function() {
         this.range = 0;
         this.ml = 0;
         this.ll = 0;
-        this.stats = [0, 10, 10, 1, 10, 5, 1, 1];// heart dam as cc cd range ml ll
     };
     function Enemy(id, to, center) {
         this.id = id;
@@ -787,11 +818,12 @@ var myGame = (function() {
     function Controller(name) {
         this.name = name;
     };
-    Controller.prototype.init = function(view) {
+    Controller.prototype.init = function(view, target) {
         this.view = oViews[view];
+        this.target = target;
     };
     Controller.prototype.showAllStats = function() {
-        for (var property in this.view) {
+        for (var property in this.view['elements']) {
             this.showStat(property);
         }
     };
@@ -804,13 +836,13 @@ var myGame = (function() {
         eStat.appendChild(sStat);
     };
     Controller.prototype.createAllStats = function() {
-        for (var property in this.view) {
+        for (var property in this.view['elements']) {
             this.createStat(property);
         }
     };
     Controller.prototype.createStat = function(stat) {
         var eStat = document.createElement('p');
-        var sStat = document.createTextNode(this.view[stat]);
+        var sStat = document.createTextNode(this.view['elements'][stat]);
         eStat.setAttribute('id', this.name + '-' + stat);
         eStat.appendChild(sStat);
         
@@ -820,21 +852,25 @@ var myGame = (function() {
     Controller.prototype.createAllButtons = function(hex) {
         var eParent = document.getElementById(this.name + '-stats');
         while (eParent.lastChild) {
-            eParent.lastChild.removeEventListener("click", oGame.runeBuy(1, hex));
+//            eParent.lastChild.removeEventListener("click", buyRune);
             eParent.removeChild(eParent.lastChild);
         }
-        for (var property in this.view) {
+        for (var property in this.view['buttons']) {
             this.createButton(hex, property);
         }
     };
     Controller.prototype.createButton = function(hex, stat) {
-        var eButton = document.createElement('button');
-        var sButton = document.createTextNode(this.view[stat]);
-        eButton.setAttribute('id', this.name + hex.id + '-' + stat);
-        eButton.appendChild(sButton);
-        
-        var eParent = document.getElementById(this.name + '-stats');
-        eParent.appendChild(eButton);
+        if (parseInt(hex.id) !== oGame.board.tower) {
+            var eButton = document.createElement('button');
+            var sButton = document.createTextNode(this.view['buttons'][stat]);
+            eButton.setAttribute('id', this.name + '-' + hex.id + '-' + stat);
+            eButton.appendChild(sButton);
+
+            var eParent = document.getElementById(this.name + '-stats');
+            eParent.appendChild(eButton);
+            
+            eButton.addEventListener("click", buyRune);
+        }
     };
     
     return {
