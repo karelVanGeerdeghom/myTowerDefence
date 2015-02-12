@@ -95,20 +95,20 @@ var myGame = (function() {
         oGame.create();
         oGame.board.setValues();
         oGame.setValues();
-        playerController.init('player', 'game');
+        playerController.init('player');
         playerController.createAllStats();
         playerController.showAllStats();
-        towerController.init('tower', 'game');
+        towerController.init('tower');
         towerController.createAllStats();
         towerController.showAllStats();
-        hexController.init('hex', 'rune');
+        hexController.init('hex');
         oGame.showRange();
 
         var hexes = document.getElementsByTagName("polygon");
         for (var i = 0; i < hexes.length; i++) {
             hexes[i].addEventListener("click", function() {
                 if (this.id !== oGame.board.tower) {
-                    hexController.createAllButtons(this);
+                    hexController.createAllButtons(oGame.board.hexes[this.id]);
                 }
             });
         }
@@ -119,6 +119,17 @@ var myGame = (function() {
         var runeId = oSettings.runeTypes.indexOf(nStat);
         
         oGame.runeBuy(runeId, oGame.board.hexes[nId]);
+        hexController.createAllButtons(oGame.board.hexes[nId]);
+    };
+    var sellRune = function() {
+        var nId = this.id.split("-")[1];
+        oGame.runeSell(oGame.board.hexes[nId]);
+        hexController.createAllButtons(oGame.board.hexes[nId]);
+    };
+    var upgradeRune = function() {
+        var nId = this.id.split("-")[1];
+        oGame.runeUpgrade(oGame.board.hexes[nId]);
+        hexController.createAllButtons(oGame.board.hexes[nId]);
     };
 
     function Game(eCanvas, ePlayer, eHex) {
@@ -187,62 +198,6 @@ var myGame = (function() {
         var svgRange = document.getElementById('towerRange');
         svgRange.setAttribute('r', this.tower.range);
     };
-    Game.prototype.showHex = function(hex) {
-        this.eHex.empty();
-        if (hex.rune) {
-            var eRune = $('<p>Rune: ' + hex.rune.name + '</p>');
-            var eTier = $('<p>Tier: ' + hex.rune.tier + '</p>');
-            var eHeartConnected = $('<p>Connected: ' + hex.towerConnected + '</p>');
-            this.eHex.append(eRune).append(eTier).append(eHeartConnected);
-        }
-        var me = this;
-        if (!hex.rune) {
-            var eDamage = $('<button type="button" id="damButton">Dam</button>');
-            var eAs = $('<button type="button" id="asButton">AS</button>');
-            var eRange = $('<button type="button" id="rangeButton">Range</button>');
-            var eCc = $('<button type="button" id="ccButton">CC</button>');
-            var eCd = $('<button type="button" id="cdButton">CD</button>');
-            var eMl = $('<button type="button" id="mlButton">Manaleech</button>');
-            var eLl = $('<button type="button" id="llButton">Lifeleech</button>');
-            var eChain = $('<button type="button" id="chainButton">Chain</button>');
-            var eSlow = $('<button type="button" id="slowButton">Slow</button>');   
-            var eSplit = $('<button type="button" id="splitButton">Split</button>');
-
-            if (this.player.mana >= 100) {
-                this.eHex.append(eDamage).append(eAs).append(eRange);
-            }
-            if (this.player.mana >= 150) {
-                this.eHex.append(eCc).append(eCd).append(eMl).append(eLl);
-            }
-            if (this.player.mana >= 250) {
-                if (this.chain !== true) { this.eHex.append(eChain); }
-                if (this.slow !== true) { this.eHex.append(eSlow); }
-                if (this.split !== true) { this.eHex.append(eSplit); }
-            }
-            $(eDamage).click(function() { me.runeBuy(1, hex); });
-            $(eAs).click(function() { me.runeBuy(2, hex); });
-            $(eCc).click(function() { me.runeBuy(3, hex); });
-            $(eCd).click(function() { me.runeBuy(4, hex); });
-            $(eRange).click(function() { me.runeBuy(5, hex); });
-            $(eMl).click(function() { me.runeBuy(6, hex); });
-            $(eLl).click(function() { me.runeBuy(7, hex); });
-            $(eChain).click(function() { me.runeBuy(8, hex); });
-            $(eSlow).click(function() { me.runeBuy(9, hex); });
-            $(eSplit).click(function() { me.runeBuy(10, hex); });
-        }
-        else if (hex.rune.id !== 0) {
-            var eSell = $('<button type="button" id="sellButton">Sell</button>');
-            var eUpgrade = $('<button type="button" id="upgradeButton">Upgrade</button>');
-            this.eHex.append(eSell);
-            $(eSell).click(function() {
-                me.runeSell(hex);
-            });
-            if (hex.rune.tier < 4 && hex.rune.id < 8) {
-                this.eHex.append(eUpgrade);
-                $(eUpgrade).click(function() { me.runeUpgrade(hex); });
-            }
-        }
-    };
     Game.prototype.runeBuy = function(id, hex) {
         hex.rune = new Rune(id);
         if (this.board.hexCheckConnected(hex)) {
@@ -257,6 +212,7 @@ var myGame = (function() {
         this.board.setValues();
         this.setValues();
         this.resetRange();
+        towerController.showAllStats();
     };
     Game.prototype.runeSell = function(hex) {
         delete hex.rune;
@@ -282,9 +238,8 @@ var myGame = (function() {
         this.board.runeDraw(this.eDefs);
         this.board.setValues();
         this.setValues();
-        this.showPlayerStats();
         this.resetRange();
-        this.showHex(hex);
+        towerController.showAllStats();
     };
     Game.prototype.runeUpgrade = function(hex) {
         hex.rune.tier += 1;
@@ -294,9 +249,8 @@ var myGame = (function() {
         this.board.runeDraw(this.eDefs);
         this.board.setValues();
         this.setValues();
-        this.showPlayerStats();
         this.resetRange();
-        this.showHex(hex);
+        towerController.showAllStats();
     };
     Game.prototype.waveCreate = function() {
         this.board.enemies = [];
@@ -663,20 +617,6 @@ var myGame = (function() {
         }, 100);
     };
 
-    function Tower() {};
-    function Player() {
-        this.health = oSettings.health;
-        this.mana = oSettings.mana;
-        this.range = oSettings.range;
-        this.dam = oSettings.dam;
-        this.as = oSettings.as;
-        this.cc = oSettings.cc;
-        this.cd = oSettings.cd;
-    };
-    function Punt(x, y) {
-        this.x = x;
-        this.y = y;
-    };
     function Hex(id, xid, yid, center, side){
         this.modifier = 0;
         this.center = center;
@@ -747,19 +687,7 @@ var myGame = (function() {
 
         return this.pattern;
     };
-    function Rune(id){
-        this.stats = oSettings.runeStats;
-        this.id = id;
-        this.name = oSettings.runeTypes[id];
-        this.tier = 1;
-        this.dam = 0;
-        this.as = 0;
-        this.cc = 0;
-        this.cd = 0;
-        this.range = 0;
-        this.ml = 0;
-        this.ll = 0;
-    };
+    
     function Enemy(id, to, center) {
         this.id = id;
         this.damage = 5;
@@ -818,9 +746,8 @@ var myGame = (function() {
     function Controller(name) {
         this.name = name;
     };
-    Controller.prototype.init = function(view, target) {
+    Controller.prototype.init = function(view) {
         this.view = oViews[view];
-        this.target = target;
     };
     Controller.prototype.showAllStats = function() {
         for (var property in this.view['elements']) {
@@ -852,25 +779,61 @@ var myGame = (function() {
     Controller.prototype.createAllButtons = function(hex) {
         var eParent = document.getElementById(this.name + '-stats');
         while (eParent.lastChild) {
-//            eParent.lastChild.removeEventListener("click", buyRune);
+            eParent.lastChild.removeEventListener("click", buyRune);
+            eParent.lastChild.removeEventListener("click", sellRune);
+            eParent.lastChild.removeEventListener("click", upgradeRune);
             eParent.removeChild(eParent.lastChild);
         }
-        for (var property in this.view['buttons']) {
-            this.createButton(hex, property);
+        if (parseInt(hex.id) !== oGame.board.tower) {
+            if (!hex.rune) {
+                for (var property in this.view['buttons']) {
+                    this.createButton(hex, property, buyRune);
+                }
+            }
+            else {
+                this.createButton(hex, 'sell', sellRune);
+                if (hex.rune.tier < 4 && hex.rune.id < 8) {
+                    this.createButton(hex, 'upgrade', upgradeRune);
+                }
+            }
         }
     };
-    Controller.prototype.createButton = function(hex, stat) {
-        if (parseInt(hex.id) !== oGame.board.tower) {
-            var eButton = document.createElement('button');
-            var sButton = document.createTextNode(this.view['buttons'][stat]);
-            eButton.setAttribute('id', this.name + '-' + hex.id + '-' + stat);
-            eButton.appendChild(sButton);
-
-            var eParent = document.getElementById(this.name + '-stats');
-            eParent.appendChild(eButton);
-            
-            eButton.addEventListener("click", buyRune);
-        }
+    Controller.prototype.createButton = function(hex, stat, action) {
+        var eParent = document.getElementById(this.name + '-stats');
+        var eButton = document.createElement('button');
+        var sButton = document.createTextNode(stat);
+        eButton.setAttribute('id', this.name + '-' + hex.id + '-' + stat);
+        eButton.appendChild(sButton);
+        eParent.appendChild(eButton);
+        eButton.addEventListener("click", action);
+    };
+ 
+    function Tower() {};
+    function Player() {
+        this.health = oSettings.health;
+        this.mana = oSettings.mana;
+        this.range = oSettings.range;
+        this.dam = oSettings.dam;
+        this.as = oSettings.as;
+        this.cc = oSettings.cc;
+        this.cd = oSettings.cd;
+    };
+    function Punt(x, y) {
+        this.x = x;
+        this.y = y;
+    };
+    function Rune(id){
+        this.stats = oSettings.runeStats;
+        this.id = id;
+        this.name = oSettings.runeTypes[id];
+        this.tier = 1;
+        this.dam = 0;
+        this.as = 0;
+        this.cc = 0;
+        this.cd = 0;
+        this.range = 0;
+        this.ml = 0;
+        this.ll = 0;
     };
     
     return {
