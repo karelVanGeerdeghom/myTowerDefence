@@ -1,5 +1,5 @@
 'use strict';
-var myGame = (function() {
+var gameModule = (function() {
     var eCanvas, ePlayer, eHex;
     var oGame;
     var oViews = {
@@ -63,8 +63,8 @@ var myGame = (function() {
         "runeTypes": ["tower", "dam", "as", "cc", "cd", "range", "ml", "ll", "chain", "slow", "split"],
         "runeStats": [0, 10, 10, 1, 10, 5, 1, 1]// tower dam as cc cd range ml ll
     };
-    var playerController = new Controller('player');
     var towerController = new Controller('tower');
+    var playerController = new Controller('player');
     var hexController = new Controller('hex');
 
     var init = function(container) {
@@ -72,18 +72,22 @@ var myGame = (function() {
         var eCanvas = document.createElement('div');
         eCanvas.setAttribute('id', 'canvas');
         eCanvas.setAttribute('class', 'canvas');
+        var eControl = document.createElement('div');
+        eControl.setAttribute('id','control-stats');
+        eControl.setAttribute('class','stats');
+        var eTower = document.createElement('div');
+        eTower.setAttribute('id','tower-stats');
+        eTower.setAttribute('class','stats');
         var ePlayer = document.createElement('div');
         ePlayer.setAttribute('id','player-stats');
-        ePlayer.setAttribute('class','playerStats');
-        var eGame = document.createElement('div');
-        eGame.setAttribute('id','tower-stats');
-        eGame.setAttribute('class','towerStats');
+        ePlayer.setAttribute('class','stats');
         var eHex = document.createElement('div');
         eHex.setAttribute('id','hex-stats');
-        eHex.setAttribute('class','hexStats');
+        eHex.setAttribute('class','stats');
         eContainer.appendChild(eCanvas);
+        eContainer.appendChild(eControl);
+        eContainer.appendChild(eTower);
         eContainer.appendChild(ePlayer);
-        eContainer.appendChild(eGame);
         eContainer.appendChild(eHex);
         createGame();
     };
@@ -112,6 +116,18 @@ var myGame = (function() {
                 }
             });
         }
+        
+        var eControl = document.getElementById('control-stats');
+        var eWave = document.createElement('button');
+        eWave.setAttribute('class', 'button');
+        var sWave = document.createTextNode('Start Wave');
+        eWave.appendChild(sWave);
+        eControl.appendChild(eWave);
+        eWave.addEventListener("click", function() {
+            oGame.waveCreate();
+            oGame.waveStart();
+            oGame.playerStartAttacking();
+        });
     };
     var buyRune = function() {
         var nId = this.id.split("-")[1];
@@ -169,7 +185,7 @@ var myGame = (function() {
         var totalDamage = dam * (cc * (100 + cd) / 10000) + dam * ((100 - cc) / 100);
         this.tower.dam = Math.round(totalDamage * 100) / 100;
         this.tower.as =  Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100;
-        this.tower.ms = Math.round(1000 / this.as);
+        this.tower.ms = Math.round(1000 / this.tower.as);
         this.tower.cc = Math.round((this.player.cc + this.board.cc) * 100) / 100;
         this.tower.cd = Math.round((this.player.cd + this.board.cd) * 100) / 100;
         this.tower.range = this.player.range * ((100 + this.board.range) / 100);
@@ -205,7 +221,7 @@ var myGame = (function() {
             hex.towerConnected = true;
         }
         this.board.hexCheckDisconnected(hex);
-        this.board.runeRemove();
+        this.board.runeRemove(this.eDefs);
         this.board.hexConnect();
         this.board.runeCreate();
         this.board.runeDraw(this.eDefs);
@@ -232,7 +248,7 @@ var myGame = (function() {
                 this.board.hexCheckDisconnected(this.board.hexes[i]);
             }
         }
-        this.board.runeRemove();
+        this.board.runeRemove(this.eDefs);
         this.board.hexConnect();
         this.board.runeCreate();
         this.board.runeDraw(this.eDefs);
@@ -243,7 +259,7 @@ var myGame = (function() {
     };
     Game.prototype.runeUpgrade = function(hex) {
         hex.rune.tier += 1;
-        this.board.runeRemove();
+        this.board.runeRemove(this.eDefs);
         this.board.hexConnect();
         this.board.runeCreate();
         this.board.runeDraw(this.eDefs);
@@ -281,7 +297,7 @@ var myGame = (function() {
         enemy.freeze -= 1;
         if (enemy.freeze <= 0) {
             var slow = 1;
-            if (this.slowEffect === true && this.getDistance(enemy.center, to) <= this.range) { slow = 0.5; }
+            if (this.tower.slowEffect === true && this.getDistance(enemy.center, to) <= this.tower.range) { slow = 0.5; }
             var x = enemy.center.x + enemy.cosine * enemy.speed * slow;
             var y = enemy.center.y + enemy.sine * enemy.speed * slow;
             var from = new Punt(x, y);
@@ -296,13 +312,13 @@ var myGame = (function() {
             if (enemy.animate % Math.floor(enemy.mod * 5) === 0) {
                 enemy.step += 1;
                 enemy.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + enemy.type + '-' + enemy.direction + '-' + enemy.step % 6 + '.svg');
-    //            enemy.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + enemy.type + '-' + enemy.step % 2 + '.svg');
             }
             if (this.getDistance(enemy.center, to) < 50) {
                 this.player.health -= enemy.damage;
-    //            this.showPlayer();
+                playerController.showStat("health");
                 delete enemy["pattern"];
-                $('#enemy' + enemy.id).remove();
+                var eEnemy = document.getElementById('enemy' + enemy.id);
+                if (eEnemy) { this.eDefs.removeChild(eEnemy); }
                 this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
                 enemy.element.remove();
                 clearInterval(enemy.interval);
@@ -339,14 +355,14 @@ var myGame = (function() {
         var color = "red";
         var chainColor = "white";
         this.player.interval = setInterval(function() {
-            var idClosest = me.enemyClosest(me.board.center, me.range);
+            var idClosest = me.enemyClosest(me.board.center, me.tower.range);
             if (idClosest >= 0) {
                 var oClosestPunt = new Punt(me.board.enemies[idClosest].center.x, me.board.enemies[idClosest].center.y);
                 me.board.enemies[idClosest].freeze = freezeCount;
                 me.board.showAttack(me.board.center, oClosestPunt, color);
                 me.playerAttack(me.board.enemies[idClosest]);
-                if (me.chainEffect === true) {
-                    var idClosestChained = me.enemyFurthest(oClosestPunt, me.range / 2);
+                if (me.tower.chainEffect === true) {
+                    var idClosestChained = me.enemyFurthest(oClosestPunt, me.tower.range / 2);
                     if (idClosestChained >= 0) {
                         me.board.enemies[idClosestChained].freeze = freezeCount;
                         me.board.showAttack(oClosestPunt, me.board.enemies[idClosestChained].center, color);
@@ -354,15 +370,15 @@ var myGame = (function() {
                     }
                 }
             }
-            if (me.splitEffect === true) {
-                var idFurthest = me.enemyFurthest(me.board.center, me.range);
+            if (me.tower.splitEffect === true) {
+                var idFurthest = me.enemyFurthest(me.board.center, me.tower.range);
                 if (idFurthest >= 0) {
                     var oFurthestPunt = new Punt(me.board.enemies[idFurthest].center.x, me.board.enemies[idFurthest].center.y);
                     me.board.enemies[idFurthest].freeze = freezeCount;
                     me.board.showAttack(me.board.center, oFurthestPunt, color);
                     me.playerAttack(me.board.enemies[idFurthest]);
-                    if (me.chainEffect === true) {
-                        var idFurthestChained = me.enemyFurthest(oFurthestPunt, me.range / 2);
+                    if (me.tower.chainEffect === true) {
+                        var idFurthestChained = me.enemyFurthest(oFurthestPunt, me.tower.range / 2);
                         if (idFurthestChained >= 0) {
                             me.board.enemies[idFurthestChained].freeze = freezeCount;
                             me.board.showAttack(oFurthestPunt, me.board.enemies[idFurthestChained].center, color);
@@ -374,23 +390,25 @@ var myGame = (function() {
             if (me.board.enemies.length === 0) {
                 clearInterval(me.player.interval);
             }
-        }, this.ms);
+        }, this.tower.ms);
     };
     Game.prototype.playerAttack = function(enemy) {
-        if (this.ml > 0 || this.ll > 0) {
-            if (this.ml > 0) {
-                this.player.mana += this.dam * (this.ml / 100);
+        if (this.tower.ll > 0 || this.tower.ml > 0) {
+            if (this.tower.ll > 0) {
+                this.player.health += this.tower.dam * (this.tower.ll / 100);
+                playerController.showStat("health");
             }
-            if (this.ll > 0) {
-                this.player.health += this.dam * (this.ll / 100);
+            if (this.tower.ml > 0) {
+                this.player.mana += this.tower.dam * (this.tower.ml / 100);
+                playerController.showStat("mana");
             }
-    //        this.showPlayer();
         }
-        enemy.health -= this.dam;
+        enemy.health -= this.tower.dam;
         if (enemy.health <= 0) {
             this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
             delete enemy["pattern"];
-            $('#enemy' + enemy.id).remove();
+            var eEnemy = document.getElementById('enemy' + enemy.id);
+            if (eEnemy) { this.eDefs.removeChild(eEnemy); }
             enemy.element.remove();
             clearInterval(enemy.interval);
         }
@@ -547,10 +565,11 @@ var myGame = (function() {
             }
         }
     };
-    Board.prototype.runeRemove = function() {
+    Board.prototype.runeRemove = function(defs) {
         for (var i = 0; i < this.hexes.length; i++ ) {
             delete this.hexes[i]["pattern"];
-            $('#pattern' + this.hexes[i].id).remove();
+            var eThisHex = document.getElementById('pattern' + this.hexes[i].id);
+            if (eThisHex) { defs.removeChild(eThisHex); }
         }
     };
     Board.prototype.setValues = function() {
@@ -733,7 +752,6 @@ var myGame = (function() {
         this.image.setAttribute("width", this.size * 2 * this.mod);
         this.image.setAttribute("height", this.size * 2 * this.mod);
         this.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + this.type + '-' + this.direction + '-' + this.step % 6 + '.svg');
-    //    this.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + this.type + '-' + this.step % 2 + '.svg');
         this.image.setAttribute('transform', 'rotate(' + parseFloat(this.angleDegrees - 90) + ' ' + this.size * this.mod + ' ' + this.size * this.mod + ')');
 
         this.pattern.appendChild(this.image);
@@ -793,16 +811,21 @@ var myGame = (function() {
             else {
                 this.createButton(hex, 'sell', sellRune);
                 if (hex.rune.tier < 4 && hex.rune.id < 8) {
-                    this.createButton(hex, 'upgrade', upgradeRune);
+                    this.createButton(hex, 'up', upgradeRune);
                 }
             }
         }
     };
     Controller.prototype.createButton = function(hex, stat, action) {
         var eParent = document.getElementById(this.name + '-stats');
+        if (stat === "chain" && oGame.tower.chain === true) { return; }
+        if (stat === "split" && oGame.tower.split === true) {  return; }
+        if (stat === "slow" && oGame.tower.slow === true) { return; }
+
         var eButton = document.createElement('button');
         var sButton = document.createTextNode(stat);
         eButton.setAttribute('id', this.name + '-' + hex.id + '-' + stat);
+        eButton.setAttribute('class', 'button ' + stat);
         eButton.appendChild(sButton);
         eParent.appendChild(eButton);
         eButton.addEventListener("click", action);

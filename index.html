@@ -16,24 +16,9 @@ and open the template in the editor.
                 background-size: 100%;*/
                 float: left;
             }
-            .playerStats {
+            .stats {
                 float: left;
                 width: 300px;
-                height: 200px;
-                border: 1px black solid;
-                margin: 5px;
-            }
-            .towerStats {
-                float: left;
-                width: 300px;
-                height: 200px;
-                border: 1px black solid;
-                margin: 5px;
-            }
-            .hexStats {
-                float: left;
-                width: 300px;
-                height: 200px;
                 border: 1px black solid;
                 margin: 5px;
             }
@@ -43,14 +28,34 @@ and open the template in the editor.
             p {
                 margin: 0;
             }
+            .button {
+                width: 60px;
+                height: 60px;
+                text-align: center;
+                color: white;
+                font-weight: bold;
+                border-radius: 30px;
+                background-color: black;
+                background-size: 100%;
+                cursor: pointer;
+            }
+            .range { background-image: url(images/rune-range1.png); }
+            .dam { background-image: url(images/rune-dam1.png); }
+            .as { background-image: url(images/rune-as1.png); }
+            .cc { background-image: url(images/rune-cc1.png); }
+            .cd { background-image: url(images/rune-cd1.png); }
+            .ll { background-image: url(images/rune-ll1.png); }
+            .ml { background-image: url(images/rune-ml1.png); }
+            .chain { background-image: url(images/rune-chain1.png); }
+            .split { background-image: url(images/rune-split1.png); }
+            .slow { background-image: url(images/rune-slow1.png); }
         </style>
     </head>
     <body>
         <div id="container"></div>
-        <script type="text/javascript"  src="jquery-2.1.3.min.js"></script>
         <script type="text/javascript"  src="TowerDefenceModule.js"></script>
         <script>
-            myGame.init('container');
+            gameModule.init('container');
         </script>
     </body>
 </html>
