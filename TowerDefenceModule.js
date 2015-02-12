@@ -1,6 +1,5 @@
 'use strict';
 var gameModule = (function() {
-    var eCanvas, ePlayer, eHex;
     var oGame;
     var oViews = {
         player: {
@@ -92,9 +91,9 @@ var gameModule = (function() {
         createGame();
     };
     var createGame = function() {
-        eCanvas = document.getElementById('canvas');
-        ePlayer = document.getElementById('playerStats');
-        eHex = document.getElementById('hexStats');
+        var eCanvas = document.getElementById('canvas');
+        var ePlayer = document.getElementById('playerStats');
+        var eHex = document.getElementById('hexStats');
         oGame = new Game(eCanvas, ePlayer, eHex);
         oGame.create();
         oGame.board.setValues();
@@ -146,6 +145,76 @@ var gameModule = (function() {
         var nId = this.id.split("-")[1];
         oGame.runeUpgrade(oGame.board.hexes[nId]);
         hexController.createAllButtons(oGame.board.hexes[nId]);
+    };
+
+    function Controller(name) {
+        this.name = name;
+    };
+    Controller.prototype.init = function(view) {
+        this.view = oViews[view];
+    };
+    Controller.prototype.showAllStats = function() {
+        for (var property in this.view['elements']) {
+            this.showStat(property);
+        }
+    };
+    Controller.prototype.showStat = function(stat) {
+        var eStat = document.getElementById(this.name + '-' + stat);
+        if (eStat.childNodes[1]) {
+            eStat.removeChild(eStat.childNodes[1]);
+        }
+        var sStat = document.createTextNode(oGame[this.name][stat]);
+        eStat.appendChild(sStat);
+    };
+    Controller.prototype.createAllStats = function() {
+        for (var property in this.view['elements']) {
+            this.createStat(property);
+        }
+    };
+    Controller.prototype.createStat = function(stat) {
+        var eStat = document.createElement('p');
+        var sStat = document.createTextNode(this.view['elements'][stat]);
+        eStat.setAttribute('id', this.name + '-' + stat);
+        eStat.appendChild(sStat);
+        
+        var eParent = document.getElementById(this.name + '-stats');
+        eParent.appendChild(eStat);
+    };
+    Controller.prototype.createAllButtons = function(hex) {
+        var eParent = document.getElementById(this.name + '-stats');
+        while (eParent.lastChild) {
+            eParent.lastChild.removeEventListener("click", buyRune);
+            eParent.lastChild.removeEventListener("click", sellRune);
+            eParent.lastChild.removeEventListener("click", upgradeRune);
+            eParent.removeChild(eParent.lastChild);
+        }
+        if (parseInt(hex.id) !== oGame.board.tower) {
+            if (!hex.rune) {
+                for (var property in this.view['buttons']) {
+                    this.createButton(hex, property, buyRune);
+                }
+            }
+            else {
+                this.createButton(hex, 'sell', sellRune);
+                if (hex.rune.tier < 4 && hex.rune.id < 8) {
+                    this.createButton(hex, 'up', upgradeRune);
+                }
+            }
+        }
+    };
+    Controller.prototype.createButton = function(hex, stat, action) {
+        var eParent = document.getElementById(this.name + '-stats');
+        if (stat === "chain" && oGame.tower.chain === true) { return; }
+        if (stat === "split" && oGame.tower.split === true) {  return; }
+        if (stat === "slow" && oGame.tower.slow === true) { return; }
+
+        var eButton = document.createElement('button');
+        var sButton = document.createTextNode(stat);
+        eButton.setAttribute('id', this.name + '-' + hex.id + '-' + stat);
+        eButton.setAttribute('class', 'button ' + stat);
+        eButton.appendChild(sButton);
+        eParent.appendChild(eButton);
+        eButton.addEventListener("click", action);
     };
 
     function Game(eCanvas, ePlayer, eHex) {
@@ -270,7 +339,7 @@ var gameModule = (function() {
     };
     Game.prototype.waveCreate = function() {
         this.board.enemies = [];
-        for (var i = 0; i < 40; i++) {
+        for (var i = 0; i < 10; i++) {
             var randomAngle = Math.random() * 2 * Math.PI;
             var sine = Math.sin(randomAngle);
             var cosine = Math.cos(randomAngle);
@@ -759,76 +828,6 @@ var gameModule = (function() {
         this.element.setAttribute("fill", "url(#enemy" + this.id + ")");
 
         return this.pattern;
-    };
-
-    function Controller(name) {
-        this.name = name;
-    };
-    Controller.prototype.init = function(view) {
-        this.view = oViews[view];
-    };
-    Controller.prototype.showAllStats = function() {
-        for (var property in this.view['elements']) {
-            this.showStat(property);
-        }
-    };
-    Controller.prototype.showStat = function(stat) {
-        var eStat = document.getElementById(this.name + '-' + stat);
-        if (eStat.childNodes[1]) {
-            eStat.removeChild(eStat.childNodes[1]);
-        }
-        var sStat = document.createTextNode(oGame[this.name][stat]);
-        eStat.appendChild(sStat);
-    };
-    Controller.prototype.createAllStats = function() {
-        for (var property in this.view['elements']) {
-            this.createStat(property);
-        }
-    };
-    Controller.prototype.createStat = function(stat) {
-        var eStat = document.createElement('p');
-        var sStat = document.createTextNode(this.view['elements'][stat]);
-        eStat.setAttribute('id', this.name + '-' + stat);
-        eStat.appendChild(sStat);
-        
-        var eParent = document.getElementById(this.name + '-stats');
-        eParent.appendChild(eStat);
-    };
-    Controller.prototype.createAllButtons = function(hex) {
-        var eParent = document.getElementById(this.name + '-stats');
-        while (eParent.lastChild) {
-            eParent.lastChild.removeEventListener("click", buyRune);
-            eParent.lastChild.removeEventListener("click", sellRune);
-            eParent.lastChild.removeEventListener("click", upgradeRune);
-            eParent.removeChild(eParent.lastChild);
-        }
-        if (parseInt(hex.id) !== oGame.board.tower) {
-            if (!hex.rune) {
-                for (var property in this.view['buttons']) {
-                    this.createButton(hex, property, buyRune);
-                }
-            }
-            else {
-                this.createButton(hex, 'sell', sellRune);
-                if (hex.rune.tier < 4 && hex.rune.id < 8) {
-                    this.createButton(hex, 'up', upgradeRune);
-                }
-            }
-        }
-    };
-    Controller.prototype.createButton = function(hex, stat, action) {
-        var eParent = document.getElementById(this.name + '-stats');
-        if (stat === "chain" && oGame.tower.chain === true) { return; }
-        if (stat === "split" && oGame.tower.split === true) {  return; }
-        if (stat === "slow" && oGame.tower.slow === true) { return; }
-
-        var eButton = document.createElement('button');
-        var sButton = document.createTextNode(stat);
-        eButton.setAttribute('id', this.name + '-' + hex.id + '-' + stat);
-        eButton.setAttribute('class', 'button ' + stat);
-        eButton.appendChild(sButton);
-        eParent.appendChild(eButton);
-        eButton.addEventListener("click", action);
     };
  
     function Tower() {};
