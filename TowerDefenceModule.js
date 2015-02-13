@@ -2,21 +2,6 @@
 var gameModule = (function() {
     var oGame;
     var oViews = {
-        player: {
-            elements: {
-                "level": "Player Level: ",
-                "experience": "Player Experience: ",
-                "skillPoints": "Player Skillpoints: ",
-                "health": "Player Health: ",
-                "mana": "Player Mana: ",
-                "dam": "Player Damage: ",
-                "as": "Player Attack Speed: ",
-                "range": "Player Range: ",
-                "cc": "Player Critical Chance: ",
-                "cd": "Player  Critical Damage: "
-            },
-            buttons: {}
-        },
         tower: {
             elements: {
                 "dps": "Tower DPS: ",
@@ -33,10 +18,37 @@ var gameModule = (function() {
             },
             buttons: {}
         },
-        hex: {
+        player: {
             elements: {
-                "range": "Range"
+                "level": "Player Level: ",
+                "experience": "Player Experience: ",
+                "skillPoints": "Player Skillpoints: ",
+                "health": "Player Health: ",
+                "mana": "Player Mana: ",
+                "dam": "Player Damage: ",
+                "as": "Player Attack Speed: ",
+                "range": "Player Range: ",
+                "cc": "Player Critical Chance: ",
+                "cd": "Player  Critical Damage: "
             },
+            buttons: {}
+        },
+        skilltree: {
+            elements: {
+                "dam": "Damage Rune",
+                "as": "Attack Speed Rune",
+                "range": "Range Rune",
+                "cc": "Critical Chance Rune",
+                "cd": "Critical Damage Rune",
+                "ll": "Lifeleech Rune",
+                "ml": "Manaleech Rune",
+                "chain": "Chaining Rune",
+                "slow": "Slowing Rune",
+                "split": "Splitting Rune"
+            }
+        },
+        hex: {
+            elements: {},
             buttons: {
                 "dam": "Damage",
                 "as": "Attack Speed",
@@ -68,6 +80,7 @@ var gameModule = (function() {
     };
     var towerController = new Controller('tower');
     var playerController = new Controller('player');
+    var skilltreeController = new Controller('skilltree');
     var hexController = new Controller('hex');
 
     var init = function(container) {
@@ -84,6 +97,9 @@ var gameModule = (function() {
         var ePlayer = document.createElement('div');
         ePlayer.setAttribute('id','player-stats');
         ePlayer.setAttribute('class','stats');
+        var eSkilltree = document.createElement('div');
+        eSkilltree.setAttribute('id','skilltree-stats');
+        eSkilltree.setAttribute('class','stats');
         var eHex = document.createElement('div');
         eHex.setAttribute('id','hex-stats');
         eHex.setAttribute('class','stats');
@@ -91,6 +107,7 @@ var gameModule = (function() {
         eContainer.appendChild(eControl);
         eContainer.appendChild(eTower);
         eContainer.appendChild(ePlayer);
+        eContainer.appendChild(eSkilltree);
         eContainer.appendChild(eHex);
         createGame();
     };
@@ -102,12 +119,14 @@ var gameModule = (function() {
         oGame.create();
         oGame.board.setValues();
         oGame.setValues();
-        playerController.init('player');
-        playerController.createAllStats();
-        playerController.showAllStats();
         towerController.init('tower');
         towerController.createAllStats();
         towerController.showAllStats();
+        playerController.init('player');
+        playerController.createAllStats();
+        playerController.showAllStats();
+        skilltreeController.init('skilltree');
+        skilltreeController.createAllSkills();
         hexController.init('hex');
         oGame.showRange();
 
@@ -220,7 +239,37 @@ var gameModule = (function() {
         eParent.appendChild(eButton);
         eButton.addEventListener("click", action);
     };
-
+    Controller.prototype.createAllSkills = function() {
+        for (var property in this.view['elements']) {
+            this.createSkill(property);
+        }
+    };
+    Controller.prototype.createSkill = function(stat) {
+        var eSkills = document.createElement('div');
+        eSkills.setAttribute('id', 'skilltree-' + stat);
+        eSkills.setAttribute('class', 'skillBar');
+        var eSkillName = document.createElement('div');
+        var sSkillName = document.createTextNode(this.view['elements'][stat]);
+        eSkillName.appendChild(sSkillName);
+        eSkills.appendChild(eSkillName);
+        var nMax = 5;
+        if (stat === "chain" || stat === "split" || stat === "slow") {
+            nMax = 2;
+        }
+        for (var i = 1; i < nMax; i++) {
+            var tier = i;
+            if (oGame.player.skilltree[stat] < i) {
+                tier = 0;
+            }
+            var eTier = document.createElement('div');
+            eTier.setAttribute('id', 'skill-' + stat + '-' + i);
+            eTier.setAttribute('class', 'skillIcon ' + stat + tier);
+            eSkills.appendChild(eTier);
+        }  
+        var eParent = document.getElementById(this.name + '-stats');
+        eParent.appendChild(eSkills);
+    };
+ 
     function Game(eCanvas, ePlayer, eHex) {
         this.eCanvas = eCanvas;
         this.ePlayer = ePlayer;
@@ -855,15 +904,6 @@ var gameModule = (function() {
         return this.pattern;
     };
 
-    function Wave(number) {
-        this.id = number;
-        this.parameter = 10 * (10 + this.id);
-        this.factor = Math.floor((Math.random() * 5) + 8);
-        this.number = this.factor;
-        this.health = this.parameter / this.factor;
-        this.speed = 5;
-    }
-    function Tower() {};
     function Player() {
         this.level = 1;
         this.experience = 0;
@@ -876,6 +916,7 @@ var gameModule = (function() {
         this.as = oSettings.as;
         this.cc = oSettings.cc;
         this.cd = oSettings.cd;
+        this.skilltree = new Skilltree();
     };
     Player.prototype.levelUp = function() {
         this.level += 1;
@@ -884,6 +925,28 @@ var gameModule = (function() {
         playerController.showStat("level");
         playerController.showStat("skillPoints");
     };
+
+    function Wave(number) {
+        this.id = number;
+        this.parameter = 10 * (10 + this.id);
+        this.factor = Math.floor((Math.random() * 5) + 8);
+        this.number = this.factor;
+        this.health = this.parameter / this.factor;
+        this.speed = 5;
+    }
+    function Skilltree() {
+        this.dam = 1;
+        this.as = 1;
+        this.range = 0;
+        this.cc = 0;
+        this.cd = 0;
+        this.ll = 0;
+        this.ml = 0;
+        this.chain = 0;
+        this.slow = 0;
+        this.split = 0;
+    }
+    function Tower() {};
     function Punt(x, y) {
         this.x = x;
         this.y = y;

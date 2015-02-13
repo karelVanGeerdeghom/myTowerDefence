@@ -10,8 +10,13 @@ and open the template in the editor.
         <meta charset="windows-1252">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
+            .container {
+                width: 1210px;
+                margin: 0 auto;
+            }
             .canvas {
                 background-color: black;
+                width: 800px;
 /*                background-image: url(images/background.png);
                 background-size: 100%;*/
                 float: left;
@@ -28,7 +33,26 @@ and open the template in the editor.
             p {
                 margin: 0;
             }
-            .button {
+            .skillBar {
+                float: left;
+                width: 300px;
+            }
+            .skillBar>div:first-child {
+                float: left;
+                width: 180px;
+                height: 30px;
+                background-color: white;
+            }
+            .skillBar>div:nth-child(2), .skillBar>div:nth-child(3), .skillBar>div:nth-child(4), .skillBar>div:nth-child(5) {
+                float: left;
+                width: 30px;
+                height: 30px;
+                border-radius: 15px;
+                background-color: black;
+                background-size: 100%;
+                cursor: pointer;
+            }
+/*            .button {
                 width: 60px;
                 height: 60px;
                 text-align: center;
@@ -39,20 +63,56 @@ and open the template in the editor.
                 background-size: 100%;
                 cursor: pointer;
             }
-            .range { background-image: url(images/rune-range1.png); }
-            .dam { background-image: url(images/rune-dam1.png); }
-            .as { background-image: url(images/rune-as1.png); }
-            .cc { background-image: url(images/rune-cc1.png); }
-            .cd { background-image: url(images/rune-cd1.png); }
-            .ll { background-image: url(images/rune-ll1.png); }
-            .ml { background-image: url(images/rune-ml1.png); }
-            .chain { background-image: url(images/rune-chain1.png); }
-            .split { background-image: url(images/rune-split1.png); }
-            .slow { background-image: url(images/rune-slow1.png); }
+*/
+            .range0 { background-image: url(images/rune-range0.png); }
+            .dam0 { background-image: url(images/rune-dam0.png); }
+            .as0 { background-image: url(images/rune-as0.png); }
+            .cc0 { background-image: url(images/rune-cc0.png); }
+            .cd0 { background-image: url(images/rune-cd0.png); }
+            .ll0 { background-image: url(images/rune-ll0.png); }
+            .ml0 { background-image: url(images/rune-ml0.png); }
+            .chain0 { background-image: url(images/rune-chain0.png); }
+            .split0 { background-image: url(images/rune-split0.png); }
+            .slow0 { background-image: url(images/rune-slow0.png); }
+            
+            .range1 { background-image: url(images/rune-range1.png); }
+            .dam1 { background-image: url(images/rune-dam1.png); }
+            .as1 { background-image: url(images/rune-as1.png); }
+            .cc1 { background-image: url(images/rune-cc1.png); }
+            .cd1 { background-image: url(images/rune-cd1.png); }
+            .ll1 { background-image: url(images/rune-ll1.png); }
+            .ml1 { background-image: url(images/rune-ml1.png); }
+            .chain1 { background-image: url(images/rune-chain1.png); }
+            .split1 { background-image: url(images/rune-split1.png); }
+            .slow1 { background-image: url(images/rune-slow1.png); }
+            
+            .range2 { background-image: url(images/rune-range2.png); }
+            .dam2 { background-image: url(images/rune-dam2.png); }
+            .as2 { background-image: url(images/rune-as2.png); }
+            .cc2 { background-image: url(images/rune-cc2.png); }
+            .cd2 { background-image: url(images/rune-cd2.png); }
+            .ll2 { background-image: url(images/rune-ll2.png); }
+            .ml2 { background-image: url(images/rune-ml2.png); }
+            
+            .range3 { background-image: url(images/rune-range3.png); }
+            .dam3 { background-image: url(images/rune-dam3.png); }
+            .as3 { background-image: url(images/rune-as3.png); }
+            .cc3 { background-image: url(images/rune-cc3.png); }
+            .cd3 { background-image: url(images/rune-cd3.png); }
+            .ll3 { background-image: url(images/rune-ll3.png); }
+            .ml3 { background-image: url(images/rune-ml3.png); } 
+            
+            .range4 { background-image: url(images/rune-range4.png); }
+            .dam4 { background-image: url(images/rune-dam4.png); }
+            .as4 { background-image: url(images/rune-as4.png); }
+            .cc4 { background-image: url(images/rune-cc4.png); }
+            .cd4 { background-image: url(images/rune-cd4.png); }
+            .ll4 { background-image: url(images/rune-ll4.png); }
+            .ml4 { background-image: url(images/rune-ml4.png); }   
         </style>
     </head>
     <body>
-        <div id="container"></div>
+        <div class="container" id="container"></div>
         <script type="text/javascript"  src="TowerDefenceModule.js"></script>
         <script>
             gameModule.init('container');
