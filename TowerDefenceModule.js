@@ -1,14 +1,17 @@
-'use strict';
+'use strict'; 
 var gameModule = (function() {
     var oGame;
     var oViews = {
         player: {
             elements: {
+                "level": "Player Level: ",
+                "experience": "Player Experience: ",
+                "skillPoints": "Player Skillpoints: ",
                 "health": "Player Health: ",
                 "mana": "Player Mana: ",
-                "range": "Player Range: ",
                 "dam": "Player Damage: ",
                 "as": "Player Attack Speed: ",
+                "range": "Player Range: ",
                 "cc": "Player Critical Chance: ",
                 "cd": "Player  Critical Damage: "
             },
@@ -17,13 +20,13 @@ var gameModule = (function() {
         tower: {
             elements: {
                 "dps": "Tower DPS: ",
-                "range": "Tower Range: ",
                 "dam": "Tower Damage: ",
                 "as": "Tower Attack Speed: ",
+                "range": "Tower Range: ",
                 "cc": "Tower Critical Chance: ",
                 "cd": "Tower  Critical Damage: ",
-                "ml": "Tower Lifeleech: ",
-                "ll": "Tower Manaleech: ",
+                "ll": "Tower Lifeleech: ",
+                "ml": "Tower Manaleech: ",
                 "chainEffect": "Chaining: ",
                 "splitEffect": "Splitting: ",
                 "slowEffect": "Slowing: "
@@ -35,9 +38,9 @@ var gameModule = (function() {
                 "range": "Range"
             },
             buttons: {
-                "range": "Range",
                 "dam": "Damage",
                 "as": "Attack Speed",
+                "range": "Range",
                 "cc": "Critical Chance",
                 "cd": " Critical Damage",
                 "ll": "Lifeleech",
@@ -51,7 +54,7 @@ var gameModule = (function() {
     var oSettings =  {
         "size": 800,
         "radius": 4,
-        "side": 24,
+        "side": 25,
         "health": 100,
         "mana": 200,
         "range": 150,
@@ -59,7 +62,8 @@ var gameModule = (function() {
         "as": 5,
         "cc": 5,
         "cd": 50,
-        "runeTypes": ["tower", "dam", "as", "cc", "cd", "range", "ml", "ll", "chain", "slow", "split"],
+        "runeTypes": ["tower", "dam", "as", "range", "cc", "cd", "ll", "ml", "chain", "slow", "split"],
+        "runeCosts": [0, 100, 100, 100, 150, 150, 200, 200, 250, 250, 250],
         "runeStats": [0, 10, 10, 1, 10, 5, 1, 1]// tower dam as cc cd range ml ll
     };
     var towerController = new Controller('tower');
@@ -222,6 +226,7 @@ var gameModule = (function() {
         this.ePlayer = ePlayer;
         this.eHex = eHex;
         this.player = new Player;
+        this.waveId = 0;
     };
     Game.prototype.create = function() {
         this.createSvg();
@@ -255,9 +260,9 @@ var gameModule = (function() {
         this.tower.dam = Math.round(totalDamage * 100) / 100;
         this.tower.as =  Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100;
         this.tower.ms = Math.round(1000 / this.tower.as);
+        this.tower.range = this.player.range * ((100 + this.board.range) / 100);
         this.tower.cc = Math.round((this.player.cc + this.board.cc) * 100) / 100;
         this.tower.cd = Math.round((this.player.cd + this.board.cd) * 100) / 100;
-        this.tower.range = this.player.range * ((100 + this.board.range) / 100);
         this.tower.dps = Math.round(this.tower.dam * (Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100) * 100) / 100;
         this.tower.ml = this.board.ml;
         this.tower.ll = this.board.ll;
@@ -285,6 +290,8 @@ var gameModule = (function() {
     };
     Game.prototype.runeBuy = function(id, hex) {
         hex.rune = new Rune(id);
+        this.player.mana -= oSettings.runeCosts[id];
+        playerController.showStat("mana");
         if (this.board.hexCheckConnected(hex)) {
             hex.rune.tier = 1;
             hex.towerConnected = true;
@@ -300,6 +307,8 @@ var gameModule = (function() {
         towerController.showAllStats();
     };
     Game.prototype.runeSell = function(hex) {
+        this.player.mana += oSettings.runeCosts[hex.rune.id] * hex.rune.tier;
+        playerController.showStat("mana");
         delete hex.rune;
         hex.element.setAttribute("fill", "black");
         for (var i = 0; i < this.board.hexes.length; i++) {
@@ -328,6 +337,8 @@ var gameModule = (function() {
     };
     Game.prototype.runeUpgrade = function(hex) {
         hex.rune.tier += 1;
+        this.player.mana -= oSettings.runeCosts[hex.rune.id];
+        playerController.showStat("mana");
         this.board.runeRemove(this.eDefs);
         this.board.hexConnect();
         this.board.runeCreate();
@@ -339,12 +350,15 @@ var gameModule = (function() {
     };
     Game.prototype.waveCreate = function() {
         this.board.enemies = [];
-        for (var i = 0; i < 10; i++) {
+        this.wave = new Wave(this.waveId);
+        console.log(this.waveId);
+        this.waveId += 1;
+        for (var i = 0; i < this.wave.number; i++) {
             var randomAngle = Math.random() * 2 * Math.PI;
             var sine = Math.sin(randomAngle);
             var cosine = Math.cos(randomAngle);
             var punt = new Punt(sine * (600), cosine * (600));
-            var enemy = new Enemy(i, this.board.center, punt);
+            var enemy = new Enemy(i, this.board.center, punt, this.wave);
             this.board.enemies.push(enemy);
         }
     };
@@ -474,6 +488,16 @@ var gameModule = (function() {
         }
         enemy.health -= this.tower.dam;
         if (enemy.health <= 0) {
+            this.player.mana += enemy.mana;
+            this.player.experience += enemy.experience;
+            if (this.player.experience >= (100 + (this.player.level - 1) * 10)) {
+                var nExperience = this.player.experience;
+                nExperience -= (100 + (this.player.level - 1) * 10);
+                this.player.experience = Math.abs(nExperience);
+                this.player.levelUp();
+            };
+            playerController.showStat("mana");
+            playerController.showStat("experience");
             this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
             delete enemy["pattern"];
             var eEnemy = document.getElementById('enemy' + enemy.id);
@@ -584,9 +608,9 @@ var gameModule = (function() {
             if (this.hexes[i].rune && this.hexes[i].rune.id !== 0) {
                 this.hexes[i].rune.dam = 0;
                 this.hexes[i].rune.as = 0;
+                this.hexes[i].rune.range = 0;
                 this.hexes[i].rune.cc = 0;
                 this.hexes[i].rune.cd = 0;
-                this.hexes[i].rune.range = 0;
                 this.hexes[i].rune.ml = 0;
                 this.hexes[i].rune.chain = false;
                 this.hexes[i].rune.slow = false;
@@ -600,19 +624,19 @@ var gameModule = (function() {
                         this.hexes[i].rune.as = this.hexes[i].rune.stats[2] * this.hexes[i].rune.tier;
                         break;
                     case 3:
-                        this.hexes[i].rune.cc = this.hexes[i].rune.stats[3] * this.hexes[i].rune.tier;
-                        break;
-                    case 4:
-                        this.hexes[i].rune.cd = this.hexes[i].rune.stats[4] * this.hexes[i].rune.tier;
-                        break;
-                    case 5:
                         this.hexes[i].rune.range = this.hexes[i].rune.stats[5] * this.hexes[i].rune.tier;
                         break;
+                    case 4:
+                        this.hexes[i].rune.cc = this.hexes[i].rune.stats[3] * this.hexes[i].rune.tier;
+                        break;
+                    case 5:
+                        this.hexes[i].rune.cd = this.hexes[i].rune.stats[4] * this.hexes[i].rune.tier;
+                        break;
                     case 6:
-                        this.hexes[i].rune.ml = this.hexes[i].rune.stats[6] * this.hexes[i].rune.tier;
+                        this.hexes[i].rune.ll = this.hexes[i].rune.stats[6] * this.hexes[i].rune.tier;
                         break;
                     case 7:
-                        this.hexes[i].rune.ll = this.hexes[i].rune.stats[7] * this.hexes[i].rune.tier;
+                        this.hexes[i].rune.ml = this.hexes[i].rune.stats[7] * this.hexes[i].rune.tier;
                         break; 
                     case 8:
                         this.hexes[i].rune.chain = true;
@@ -644,11 +668,11 @@ var gameModule = (function() {
     Board.prototype.setValues = function() {
         this.dam = 0;
         this.as = 0;
+        this.range = 0;
         this.cc = 0;
         this.cd = 0;
-        this.range = 0;
-        this.ml = 0;
         this.ll = 0;
+        this.ml = 0;
         this.chain = false;
         this.chainEffect = false;
         this.slow = false;
@@ -671,11 +695,11 @@ var gameModule = (function() {
                 }
                 this.dam += hex.rune.dam * asc;
                 this.as += hex.rune.as * asc;
+                this.range += hex.rune.range * asc;
                 this.cc += hex.rune.cc * desc;
                 this.cd += hex.rune.cd * desc;
-                this.range += hex.rune.range * desc;
-                this.ml += hex.rune.ml * desc;
                 this.ll += hex.rune.ll * desc;
+                this.ml += hex.rune.ml * desc;
                 if (hex.rune.chain === true) {
                     this.chain = true;
                     if (hex.towerConnected === true) { this.chainEffect = true; }
@@ -775,22 +799,23 @@ var gameModule = (function() {
 
         return this.pattern;
     };
-    
-    function Enemy(id, to, center) {
+
+    function Enemy(id, to, center, wave) {
         this.id = id;
         this.damage = 5;
+        this.mana = 5;
+        this.experience = 5;
         this.mod = Math.random() + 1;
-        this.health = 15 * this.mod;
-        this.radius = 10 * this.mod;
-        this.speed = 5 / this.mod;
+        this.health = wave.health * this.mod;
+        this.speed = wave.speed / this.mod;
         this.center = center;
         this.angleRadians = Math.atan2(to.y - this.center.y, to.x - this.center.x);
         this.angleDegrees = Math.atan2(to.y - this.center.y, to.x - this.center.x) * 180 / Math.PI;
         this.sine = Math.sin(this.angleRadians);
         this.cosine = Math.cos(this.angleRadians);
-        this.direction = Math.round(Math.random());
-        this.type = Math.floor(Math.random() * 4);
-        this.size = 17;
+        this.direction = 0;//Math.round(Math.random());
+        this.type = 0;//Math.floor(Math.random() * 4);
+        this.size = 17 * this.mod;
         this.animate = 0;
         this.step = 0;
         this.freeze = 0;
@@ -801,9 +826,9 @@ var gameModule = (function() {
         this.element.setAttribute('cy', this.center.y);
         this.element.setAttribute('x', this.center.x);
         this.element.setAttribute('y', this.center.y);
-        this.element.setAttribute('width', this.size * 2 * this.mod);
-        this.element.setAttribute('height', this.size * 2 * this.mod);
-        this.element.setAttribute('transform', 'translate(-' + this.size * this.mod + ' -' + this.size * this.mod + ')');
+        this.element.setAttribute('width', this.size * 2);
+        this.element.setAttribute('height', this.size * 2);
+        this.element.setAttribute('transform', 'translate(-' + this.size + ' -' + this.size + ')');
         this.element.setAttribute('id', 'enemy');
 
         return this.element;
@@ -814,14 +839,14 @@ var gameModule = (function() {
         this.pattern.setAttribute("patternUnits", "userSpaceOnUse");
         this.pattern.setAttribute("x", this.center.x + this.mod * 15);
         this.pattern.setAttribute("y", this.center.y + this.mod * 15);
-        this.pattern.setAttribute("width", this.size * 2 * this.mod);
-        this.pattern.setAttribute("height", this.size * 2 * this.mod);
+        this.pattern.setAttribute("width", this.size * 2);
+        this.pattern.setAttribute("height", this.size * 2);
 
         this.image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        this.image.setAttribute("width", this.size * 2 * this.mod);
-        this.image.setAttribute("height", this.size * 2 * this.mod);
+        this.image.setAttribute("width", this.size * 2);
+        this.image.setAttribute("height", this.size * 2);
         this.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + this.type + '-' + this.direction + '-' + this.step % 6 + '.svg');
-        this.image.setAttribute('transform', 'rotate(' + parseFloat(this.angleDegrees - 90) + ' ' + this.size * this.mod + ' ' + this.size * this.mod + ')');
+        this.image.setAttribute('transform', 'rotate(' + parseFloat(this.angleDegrees - 90) + ' ' + this.size + ' ' + this.size + ')');
 
         this.pattern.appendChild(this.image);
 
@@ -829,16 +854,35 @@ var gameModule = (function() {
 
         return this.pattern;
     };
- 
+
+    function Wave(number) {
+        this.id = number;
+        this.parameter = 10 * (10 + this.id);
+        this.factor = Math.floor((Math.random() * 5) + 8);
+        this.number = this.factor;
+        this.health = this.parameter / this.factor;
+        this.speed = 5;
+    }
     function Tower() {};
     function Player() {
+        this.level = 1;
+        this.experience = 0;
+        this.skillPoints = 0;
         this.health = oSettings.health;
+        this.maxHealth = oSettings.health;
         this.mana = oSettings.mana;
         this.range = oSettings.range;
         this.dam = oSettings.dam;
         this.as = oSettings.as;
         this.cc = oSettings.cc;
         this.cd = oSettings.cd;
+    };
+    Player.prototype.levelUp = function() {
+        this.level += 1;
+        this.skillPoints += 1;
+        this.health = this.maxHealth;
+        playerController.showStat("level");
+        playerController.showStat("skillPoints");
     };
     function Punt(x, y) {
         this.x = x;
@@ -857,7 +901,7 @@ var gameModule = (function() {
         this.ml = 0;
         this.ll = 0;
     };
-    
+
     return {
         init: init
     };
