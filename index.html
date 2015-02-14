@@ -9,6 +9,7 @@ and open the template in the editor.
         <title>TODO supply a title</title>
         <meta charset="windows-1252">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="normalize.css">
         <style>
             .container {
                 width: 1210px;
@@ -36,21 +37,24 @@ and open the template in the editor.
             .skillBar {
                 float: left;
                 width: 300px;
+                background-color: white;
             }
             .skillBar>div:first-child {
                 float: left;
                 width: 180px;
                 height: 30px;
-                background-color: white;
             }
-            .skillBar>div:nth-child(2), .skillBar>div:nth-child(3), .skillBar>div:nth-child(4), .skillBar>div:nth-child(5) {
+            .skillBar>div:nth-child(2) {
+                float: left;
+                cursor: pointer;
+            }
+            .skillBar>div>div {
                 float: left;
                 width: 30px;
                 height: 30px;
                 border-radius: 15px;
                 background-color: black;
                 background-size: 100%;
-                cursor: pointer;
             }
 /*            .button {
                 width: 60px;

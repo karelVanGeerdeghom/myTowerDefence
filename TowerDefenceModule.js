@@ -15,8 +15,7 @@ var gameModule = (function() {
                 "chainEffect": "Chaining: ",
                 "splitEffect": "Splitting: ",
                 "slowEffect": "Slowing: "
-            },
-            buttons: {}
+            }
         },
         player: {
             elements: {
@@ -30,36 +29,100 @@ var gameModule = (function() {
                 "range": "Player Range: ",
                 "cc": "Player Critical Chance: ",
                 "cd": "Player  Critical Damage: "
-            },
-            buttons: {}
+            }
         },
-        skilltree: {
+        skill: {
             elements: {
-                "dam": "Damage Rune",
-                "as": "Attack Speed Rune",
-                "range": "Range Rune",
-                "cc": "Critical Chance Rune",
-                "cd": "Critical Damage Rune",
-                "ll": "Lifeleech Rune",
-                "ml": "Manaleech Rune",
-                "chain": "Chaining Rune",
-                "slow": "Slowing Rune",
-                "split": "Splitting Rune"
+                "dam": {
+                    "name": "Damage Rune",
+                    "number": 4
+                },
+                "as": {
+                    "name": "Attack Speed Rune",
+                    "number": 4
+                },
+                "range": {
+                    "name": "Range Rune",
+                    "number": 4
+                },
+                "cc": {
+                    "name": "Critical Chance Rune",
+                    "number": 4
+                },
+                "cd": {
+                    "name": "Critical Damage Rune",
+                    "number": 4
+                },
+                "ll": {
+                    "name": "Lifeleech Rune",
+                    "number": 4
+                },
+                "ml": {
+                    "name": "Manaleech Rune",
+                    "number": 4
+                },
+                "chain": {
+                    "name": "Chaining Rune",
+                    "number": 1
+                },
+                "slow": {
+                    "name": "Slowing Rune",
+                    "number": 1
+                },
+                "split": {
+                    "name": "Splitting Rune",
+                    "number": 1
+                }
             }
         },
         hex: {
-            elements: {},
             buttons: {
-                "dam": "Damage",
-                "as": "Attack Speed",
-                "range": "Range",
-                "cc": "Critical Chance",
-                "cd": " Critical Damage",
-                "ll": "Lifeleech",
-                "ml": "Manaleech",
-                "chain": "Chaining",
-                "split": "Splitting",
-                "slow": "Slowing"
+                "dam": {
+                    "name": "Damage",
+                    "upgrade": true
+                },
+                "as": {
+                    "name": "Attack Speed",
+                    "upgrade": true
+                },
+                "range": {
+                    "name": "Range",
+                    "upgrade": true
+                },
+                "cc": {
+                    "name": "Critical Chance",
+                    "upgrade": true
+                },
+                "cd": {
+                    "name": "Critical Damage",
+                    "upgrade": true
+                },
+                "ll": {
+                    "name": "Lifeleech",
+                    "upgrade": true
+                },
+                "ml": {
+                    "name": "Manaleech",
+                    "upgrade": true
+                },
+                "chain": {
+                    "name": "Chaining",
+                    "upgrade": false
+                },
+                "split": {
+                    "name": "Splitting",
+                    "upgrade": false
+                },
+                "slow": {
+                    "name": "Slowing",
+                    "upgrade": false
+                },
+                "sell": {
+                    "name": "Sell"
+                },
+                "upgrade": {
+                    "name": "Upgrade"
+                }
             }
         }
     };
@@ -76,11 +139,11 @@ var gameModule = (function() {
         "cd": 50,
         "runeTypes": ["tower", "dam", "as", "range", "cc", "cd", "ll", "ml", "chain", "slow", "split"],
         "runeCosts": [0, 100, 100, 100, 150, 150, 200, 200, 250, 250, 250],
-        "runeStats": [0, 10, 10, 1, 10, 5, 1, 1]// tower dam as cc cd range ml ll
+        "runeStats": [0, 10, 10, 1, 10, 5, 0.5, 0.5]
     };
     var towerController = new Controller('tower');
     var playerController = new Controller('player');
-    var skilltreeController = new Controller('skilltree');
+    var skillController = new Controller('skill');
     var hexController = new Controller('hex');
 
     var init = function(container) {
@@ -91,24 +154,24 @@ var gameModule = (function() {
         var eControl = document.createElement('div');
         eControl.setAttribute('id','control-stats');
         eControl.setAttribute('class','stats');
+        var eHex = document.createElement('div');
+        eHex.setAttribute('id','hex-stats');
+        eHex.setAttribute('class','stats');
         var eTower = document.createElement('div');
         eTower.setAttribute('id','tower-stats');
         eTower.setAttribute('class','stats');
         var ePlayer = document.createElement('div');
         ePlayer.setAttribute('id','player-stats');
         ePlayer.setAttribute('class','stats');
-        var eSkilltree = document.createElement('div');
-        eSkilltree.setAttribute('id','skilltree-stats');
-        eSkilltree.setAttribute('class','stats');
-        var eHex = document.createElement('div');
-        eHex.setAttribute('id','hex-stats');
-        eHex.setAttribute('class','stats');
+        var eSkill = document.createElement('div');
+        eSkill.setAttribute('id','skill-stats');
+        eSkill.setAttribute('class','stats');
         eContainer.appendChild(eCanvas);
         eContainer.appendChild(eControl);
+        eContainer.appendChild(eHex);
         eContainer.appendChild(eTower);
         eContainer.appendChild(ePlayer);
-        eContainer.appendChild(eSkilltree);
-        eContainer.appendChild(eHex);
+        eContainer.appendChild(eSkill);
         createGame();
     };
     var createGame = function() {
@@ -125,8 +188,9 @@ var gameModule = (function() {
         playerController.init('player');
         playerController.createAllStats();
         playerController.showAllStats();
-        skilltreeController.init('skilltree');
-        skilltreeController.createAllSkills();
+        skillController.init('skill');
+        skillController.createAllSkills();
+        skillController.showAllSkills();
         hexController.init('hex');
         oGame.showRange();
 
@@ -169,6 +233,14 @@ var gameModule = (function() {
         oGame.runeUpgrade(oGame.board.hexes[nId]);
         hexController.createAllButtons(oGame.board.hexes[nId]);
     };
+    var spendPoint = function(stat) {
+        if (oGame.player.skillPoints > 0) {
+            oGame.player.skill[stat] += 1;
+            oGame.player.skillPoints -= 1;
+            playerController.showStat("skillPoints");
+            skillController.showSkill(stat);
+        }
+    };
 
     function Controller(name) {
         this.name = name;
@@ -176,22 +248,9 @@ var gameModule = (function() {
     Controller.prototype.init = function(view) {
         this.view = oViews[view];
     };
-    Controller.prototype.showAllStats = function() {
-        for (var property in this.view['elements']) {
-            this.showStat(property);
-        }
-    };
-    Controller.prototype.showStat = function(stat) {
-        var eStat = document.getElementById(this.name + '-' + stat);
-        if (eStat.childNodes[1]) {
-            eStat.removeChild(eStat.childNodes[1]);
-        }
-        var sStat = document.createTextNode(oGame[this.name][stat]);
-        eStat.appendChild(sStat);
-    };
     Controller.prototype.createAllStats = function() {
-        for (var property in this.view['elements']) {
-            this.createStat(property);
+        for (var stat in this.view['elements']) {
+            this.createStat(stat);
         }
     };
     Controller.prototype.createStat = function(stat) {
@@ -203,6 +262,19 @@ var gameModule = (function() {
         var eParent = document.getElementById(this.name + '-stats');
         eParent.appendChild(eStat);
     };
+    Controller.prototype.showAllStats = function() {
+        for (var stat in this.view['elements']) {
+            this.showStat(stat);
+        }
+    };
+    Controller.prototype.showStat = function(stat) {
+        var eStat = document.getElementById(this.name + '-' + stat);
+        if (eStat.childNodes[1]) {
+            eStat.removeChild(eStat.childNodes[1]);
+        }
+        var sStat = document.createTextNode(oGame[this.name][stat]);
+        eStat.appendChild(sStat);
+    };
     Controller.prototype.createAllButtons = function(hex) {
         var eParent = document.getElementById(this.name + '-stats');
         while (eParent.lastChild) {
@@ -213,14 +285,16 @@ var gameModule = (function() {
         }
         if (parseInt(hex.id) !== oGame.board.tower) {
             if (!hex.rune) {
-                for (var property in this.view['buttons']) {
-                    this.createButton(hex, property, buyRune);
+                for (var rune in this.view['buttons']) {
+                    if (oGame.player.skill[rune] > 0 && oGame.player.mana >= oSettings.runeCosts[oSettings.runeTypes.indexOf(rune)]) {
+                        this.createButton(hex, rune, buyRune);
+                    } 
                 }
             }
             else {
                 this.createButton(hex, 'sell', sellRune);
-                if (hex.rune.tier < 4 && hex.rune.id < 8) {
-                    this.createButton(hex, 'up', upgradeRune);
+                if (hex.rune.tier < 4 && this.view['buttons'][hex.rune.name]["upgrade"] === true) {
+                    this.createButton(hex, 'upgrade', upgradeRune);
                 }
             }
         }
@@ -232,7 +306,7 @@ var gameModule = (function() {
         if (stat === "slow" && oGame.tower.slow === true) { return; }
 
         var eButton = document.createElement('button');
-        var sButton = document.createTextNode(stat);
+        var sButton = document.createTextNode(this.view['buttons'][stat]["name"]);
         eButton.setAttribute('id', this.name + '-' + hex.id + '-' + stat);
         eButton.setAttribute('class', 'button ' + stat);
         eButton.appendChild(sButton);
@@ -240,34 +314,51 @@ var gameModule = (function() {
         eButton.addEventListener("click", action);
     };
     Controller.prototype.createAllSkills = function() {
-        for (var property in this.view['elements']) {
-            this.createSkill(property);
+        for (var skill in this.view['elements']) {
+            this.createSkill(skill);
         }
     };
     Controller.prototype.createSkill = function(stat) {
-        var eSkills = document.createElement('div');
-        eSkills.setAttribute('id', 'skilltree-' + stat);
-        eSkills.setAttribute('class', 'skillBar');
+        var eSkillBar = document.createElement('div');
+        eSkillBar.setAttribute('id', 'skill-' + stat);
+        eSkillBar.setAttribute('class', 'skillBar');
         var eSkillName = document.createElement('div');
-        var sSkillName = document.createTextNode(this.view['elements'][stat]);
+        var sSkillName = document.createTextNode(this.view['elements'][stat]["name"]);
+        var eSkillIcons = document.createElement('div');
+        eSkillIcons.setAttribute('id', 'skill-' + stat + '-all');
+        
         eSkillName.appendChild(sSkillName);
-        eSkills.appendChild(eSkillName);
-        var nMax = 5;
-        if (stat === "chain" || stat === "split" || stat === "slow") {
-            nMax = 2;
+        eSkillBar.appendChild(eSkillName);
+        eSkillBar.appendChild(eSkillIcons);
+        
+        var eParent = document.getElementById(this.name + '-stats');
+        eParent.appendChild(eSkillBar);
+        
+        eSkillIcons.addEventListener("click", function() {
+            spendPoint(stat);
+        });
+    };
+    Controller.prototype.showAllSkills = function() {
+        for (var skill in this.view['elements']) {
+            this.showSkill(skill);
         }
-        for (var i = 1; i < nMax; i++) {
+    };
+    Controller.prototype.showSkill = function(stat) {
+        var eParent = document.getElementById('skill-' + stat + '-all');
+        while (eParent.lastChild) {
+            eParent.removeChild(eParent.lastChild);
+        }
+        for (var i = 1; i <= this.view['elements'][stat]["number"]; i++) {
             var tier = i;
-            if (oGame.player.skilltree[stat] < i) {
+            if (oGame.player.skill[stat] < i) {
                 tier = 0;
             }
             var eTier = document.createElement('div');
             eTier.setAttribute('id', 'skill-' + stat + '-' + i);
             eTier.setAttribute('class', 'skillIcon ' + stat + tier);
-            eSkills.appendChild(eTier);
-        }  
-        var eParent = document.getElementById(this.name + '-stats');
-        eParent.appendChild(eSkills);
+            
+            eParent.appendChild(eTier);
+        }
     };
  
     function Game(eCanvas, ePlayer, eHex) {
@@ -400,7 +491,6 @@ var gameModule = (function() {
     Game.prototype.waveCreate = function() {
         this.board.enemies = [];
         this.wave = new Wave(this.waveId);
-        console.log(this.waveId);
         this.waveId += 1;
         for (var i = 0; i < this.wave.number; i++) {
             var randomAngle = Math.random() * 2 * Math.PI;
@@ -528,6 +618,9 @@ var gameModule = (function() {
         if (this.tower.ll > 0 || this.tower.ml > 0) {
             if (this.tower.ll > 0) {
                 this.player.health += this.tower.dam * (this.tower.ll / 100);
+                if (this.player.health > this.player.maxHealth) {
+                    this.player.health = this.player.maxHealth;
+                }
                 playerController.showStat("health");
             }
             if (this.tower.ml > 0) {
@@ -744,11 +837,11 @@ var gameModule = (function() {
                 }
                 this.dam += hex.rune.dam * asc;
                 this.as += hex.rune.as * asc;
-                this.range += hex.rune.range * asc;
+                this.range += hex.rune.range * desc;
                 this.cc += hex.rune.cc * desc;
                 this.cd += hex.rune.cd * desc;
-                this.ll += hex.rune.ll * desc;
-                this.ml += hex.rune.ml * desc;
+                this.ll += hex.rune.ll * asc;
+                this.ml += hex.rune.ml * asc;
                 if (hex.rune.chain === true) {
                     this.chain = true;
                     if (hex.towerConnected === true) { this.chainEffect = true; }
@@ -853,7 +946,7 @@ var gameModule = (function() {
         this.id = id;
         this.damage = 5;
         this.mana = 5;
-        this.experience = 5;
+        this.experience = 4;
         this.mod = Math.random() + 1;
         this.health = wave.health * this.mod;
         this.speed = wave.speed / this.mod;
@@ -916,7 +1009,7 @@ var gameModule = (function() {
         this.as = oSettings.as;
         this.cc = oSettings.cc;
         this.cd = oSettings.cd;
-        this.skilltree = new Skilltree();
+        this.skill = new Skill();
     };
     Player.prototype.levelUp = function() {
         this.level += 1;
@@ -933,8 +1026,8 @@ var gameModule = (function() {
         this.number = this.factor;
         this.health = this.parameter / this.factor;
         this.speed = 5;
-    }
-    function Skilltree() {
+    };
+    function Skill() {
         this.dam = 1;
         this.as = 1;
         this.range = 0;
@@ -945,7 +1038,7 @@ var gameModule = (function() {
         this.chain = 0;
         this.slow = 0;
         this.split = 0;
-    }
+    };
     function Tower() {};
     function Punt(x, y) {
         this.x = x;
