@@ -4,6 +4,7 @@ var gameModule = (function() {
     var oViews = {
         tower: {
             elements: {
+                "wave": "Wave: ",
                 "dps": "Tower DPS: ",
                 "dam": "Tower Damage: ",
                 "as": "Tower Attack Speed: ",
@@ -21,6 +22,7 @@ var gameModule = (function() {
             elements: {
                 "level": "Player Level: ",
                 "experience": "Player Experience: ",
+                "maxExperience": "Experience Needed: ",
                 "skillPoints": "Player Skillpoints: ",
                 "health": "Player Health: ",
                 "mana": "Player Mana: ",
@@ -139,7 +141,10 @@ var gameModule = (function() {
         "cd": 50,
         "runeTypes": ["tower", "dam", "as", "range", "cc", "cd", "ll", "ml", "chain", "slow", "split"],
         "runeCosts": [0, 100, 100, 100, 150, 150, 200, 200, 250, 250, 250],
-        "runeStats": [0, 10, 10, 1, 10, 5, 0.5, 0.5]
+        "runeStats": [0, 7.5, 7.5, 2, 20, 5, 0.5, 0.5],
+        "enemydam": 5,
+        "enemymana": 5,
+        "enemyexperience": 3
     };
     var towerController = new Controller('tower');
     var playerController = new Controller('player');
@@ -377,7 +382,6 @@ var gameModule = (function() {
         this.ePlayer = ePlayer;
         this.eHex = eHex;
         this.player = new Player;
-        this.waveId = 0;
     };
     Game.prototype.create = function() {
         this.createSvg();
@@ -567,8 +571,10 @@ var gameModule = (function() {
     };
     Game.prototype.waveCreate = function() {
         this.board.enemies = [];
-        this.wave = new Wave(this.waveId);
-        this.waveId += 1;
+        this.tower.wave += 1;
+        this.wave = new Wave(this.tower.wave);
+        console.log(this.tower.wave + " | " + this.wave.parameter);
+        towerController.showStat("wave");
         for (var i = 0; i < this.wave.number; i++) {
             var randomAngle = Math.random() * 2 * Math.PI;
             var sine = Math.sin(randomAngle);
@@ -713,10 +719,7 @@ var gameModule = (function() {
                 hexController.createAllButtons(oGame.board.hexes[oGame.board.selected]);
             }
             this.player.experience += enemy.experience;
-            if (this.player.experience >= (100 + (this.player.level - 1) * 10)) {
-                var nExperience = this.player.experience;
-                nExperience -= (100 + (this.player.level - 1) * 10);
-                this.player.experience = Math.abs(nExperience);
+            if (this.player.experience >= this.player.maxExperience) {
                 this.player.levelUp();
             };
             playerController.showStat("mana");
@@ -910,12 +913,12 @@ var gameModule = (function() {
                 var desc;
                 switch (hex.connections.length) {
                     case 0: asc = 0; desc = 0; break;
-                    case 1: asc = 0.4; desc = 2.4; break;
-                    case 2: asc = 0.8; desc = 2; break;
-                    case 3: asc = 1.2; desc = 1.6; break;
-                    case 4: asc = 1.6; desc = 1.2; break;
-                    case 5: asc = 2; desc = 0.8; break;
-                    case 6: asc = 2.4; desc = 0.4; break;
+                    case 1: asc = 0.3; desc = 1.8; break;
+                    case 2: asc = 0.6; desc = 1.5; break;
+                    case 3: asc = 0.9; desc = 1.2; break;
+                    case 4: asc = 1.2; desc = 0.9; break;
+                    case 5: asc = 1.5; desc = 0.6; break;
+                    case 6: asc = 1.8; desc = 0.3; break;
                 }
                 this.dam += hex.rune.dam * asc;
                 this.as += hex.rune.as * asc;
@@ -1026,9 +1029,9 @@ var gameModule = (function() {
 
     function Enemy(id, to, center, wave) {
         this.id = id;
-        this.damage = 5;
-        this.mana = 5;
-        this.experience = 4;
+        this.damage = oSettings.enemydam;
+        this.mana = oSettings.enemymana;
+        this.experience = oSettings.enemyexperience;
         this.mod = Math.random() + 1;
         this.health = wave.health * this.mod;
         this.speed = wave.speed / this.mod;
@@ -1082,6 +1085,7 @@ var gameModule = (function() {
     function Player() {
         this.level = 1;
         this.experience = 0;
+        this.maxExperience = 100 + (this.level - 1) * 10;
         this.skillPoints = 0;
         this.health = oSettings.health;
         this.maxHealth = oSettings.health;
@@ -1097,13 +1101,19 @@ var gameModule = (function() {
         this.level += 1;
         this.skillPoints += 1;
         this.health = this.maxHealth;
+        this.experience = this.experience - this.maxExperience;
+        this.maxExperience = 100 + (this.level - 1) * 10;
+        oGame.showStat("health");
+        playerController.showStat("health");
+        playerController.showStat("experience");
+        playerController.showStat("maxExperience");
         playerController.showStat("level");
         playerController.showStat("skillPoints");
     };
 
     function Wave(number) {
         this.id = number;
-        this.parameter = 12 * (10 + this.id);
+        this.parameter = 8 * (10 + this.id) + Math.pow(this.id / 3, 2);
         this.factor = Math.floor((Math.random() * 5) + 10);
         this.number = this.factor;
         this.health = this.parameter / this.factor;
@@ -1121,7 +1131,9 @@ var gameModule = (function() {
         this.slow = 0;
         this.split = 0;
     };
-    function Tower() {};
+    function Tower() {
+        this.wave = 0;
+    };
     function Punt(x, y) {
         this.x = x;
         this.y = y;
