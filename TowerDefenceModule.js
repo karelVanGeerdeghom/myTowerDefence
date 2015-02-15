@@ -193,10 +193,13 @@ var gameModule = (function() {
         skillController.showAllSkills();
         hexController.init('hex');
         oGame.showRange();
+        oGame.createHealth();
+        oGame.createMana();
 
         var hexes = document.getElementsByTagName("polygon");
         for (var i = 0; i < hexes.length; i++) {
             hexes[i].addEventListener("click", function() {
+                oGame.board.selected = this.id;
                 if (this.id !== oGame.board.tower) {
                     hexController.createAllButtons(oGame.board.hexes[this.id]);
                 }
@@ -239,6 +242,9 @@ var gameModule = (function() {
             oGame.player.skillPoints -= 1;
             playerController.showStat("skillPoints");
             skillController.showSkill(stat);
+            if (oGame.board.selected !== -1) {
+                hexController.createAllButtons(oGame.board.hexes[oGame.board.selected]);
+            }
         }
     };
 
@@ -293,7 +299,12 @@ var gameModule = (function() {
             }
             else {
                 this.createButton(hex, 'sell', sellRune);
-                if (hex.rune.tier < 4 && this.view['buttons'][hex.rune.name]["upgrade"] === true) {
+                if (
+                    hex.rune.tier < 4 
+                    && this.view['buttons'][hex.rune.name]["upgrade"] === true
+                    && oGame.player.mana >= oSettings.runeCosts[hex.rune.id]
+                    && oGame.player.skill[hex.rune.name] > hex.rune.tier
+                ) {
                     this.createButton(hex, 'upgrade', upgradeRune);
                 }
             }
@@ -419,10 +430,76 @@ var gameModule = (function() {
         svgRange.setAttribute('cy', this.board.center.y);
         svgRange.setAttribute('r', this.tower.range);
         svgRange.setAttribute('stroke', 'green');
-        svgRange.setAttribute('stroke-width', '2px');
+        svgRange.setAttribute('stroke-width', '1px');
         svgRange.setAttribute('fill', 'none');
         svgRange.setAttribute('id', 'towerRange');
         this.eSvg.appendChild(svgRange);  
+    };
+    Game.prototype.createHealth = function() {
+        var svgHealth = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        svgHealth.setAttribute('cx', -325);
+        svgHealth.setAttribute('cy', 325);
+        svgHealth.setAttribute('r', 70);
+        svgHealth.setAttribute('stroke', '#444');
+        svgHealth.setAttribute('stroke-width', '1px');
+        svgHealth.setAttribute('fill', 'none');
+        svgHealth.setAttribute('id', 'healthglobe');
+        this.eSvg.appendChild(svgHealth);
+        
+        var pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        pattern.setAttribute("id", "health");
+        pattern.setAttribute("patternUnits", "userSpaceOnUse");
+        pattern.setAttribute("x", -395);
+        pattern.setAttribute("y", 75);
+        pattern.setAttribute("width", 160);
+        pattern.setAttribute("height", 320);
+
+        var image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        image.setAttribute("width", 160);
+        image.setAttribute("height", 320);
+        image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/globe-health.png');
+
+        pattern.appendChild(image);
+        this.eDefs.appendChild(pattern);
+
+        svgHealth.setAttribute("fill", "url(#health)");
+    };
+    Game.prototype.createMana = function() {
+        var svgHealth = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        svgHealth.setAttribute('cx', 325);
+        svgHealth.setAttribute('cy', 325);
+        svgHealth.setAttribute('r', 70);
+        svgHealth.setAttribute('stroke', '#444');
+        svgHealth.setAttribute('stroke-width', '2px');
+        svgHealth.setAttribute('fill', 'none');
+        svgHealth.setAttribute('id', 'managlobe');
+        this.eSvg.appendChild(svgHealth);  
+        
+        var pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        pattern.setAttribute("id", "mana");
+        pattern.setAttribute("patternUnits", "userSpaceOnUse");
+        pattern.setAttribute("x", -185);
+        pattern.setAttribute("y", 75);
+        pattern.setAttribute("width", 160);
+        pattern.setAttribute("height", 320);
+
+        var image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        image.setAttribute("width", 160);
+        image.setAttribute("height", 320);
+        image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/globe-mana.png');
+//        image.setAttribute('transform', 'translate(' + parseFloat(this.angleDegrees - 90) + ' ' + this.size + ' ' + this.size + ')');
+
+        pattern.appendChild(image);
+        this.eDefs.appendChild(pattern);
+
+        svgHealth.setAttribute("fill", "url(#mana)");
+    };
+    Game.prototype.showHealth = function() {
+        var health = document.getElementById('health');
+        health.setAttribute("y", 75 + ((1 - (oGame.player.health / oGame.player.maxHealth)) * 145));
+    };
+    Game.prototype.showMana = function() {
+        
     };
     Game.prototype.resetRange = function() {
         var svgRange = document.getElementById('towerRange');
@@ -538,6 +615,7 @@ var gameModule = (function() {
             if (this.getDistance(enemy.center, to) < 50) {
                 this.player.health -= enemy.damage;
                 playerController.showStat("health");
+                oGame.showHealth();
                 delete enemy["pattern"];
                 var eEnemy = document.getElementById('enemy' + enemy.id);
                 if (eEnemy) { this.eDefs.removeChild(eEnemy); }
@@ -631,6 +709,9 @@ var gameModule = (function() {
         enemy.health -= this.tower.dam;
         if (enemy.health <= 0) {
             this.player.mana += enemy.mana;
+            if (oGame.board.selected !== -1 && this.player.mana >= 100) {
+                hexController.createAllButtons(oGame.board.hexes[oGame.board.selected]);
+            }
             this.player.experience += enemy.experience;
             if (this.player.experience >= (100 + (this.player.level - 1) * 10)) {
                 var nExperience = this.player.experience;
@@ -660,6 +741,7 @@ var gameModule = (function() {
         this.height = Math.sqrt(3 * this.side * this.side);
         this.hexes = [];
         this.enemies = [];
+        this.selected = -1;
     };
     Board.prototype.hexCreate = function() {
         var x = this.center.x - this.height * (this.radius + this.radius);
@@ -868,7 +950,7 @@ var gameModule = (function() {
         this.canvas.appendChild(attack);
         setTimeout(function() {
             attack.remove();
-        }, 100);
+        }, 50);
     };
 
     function Hex(id, xid, yid, center, side){
@@ -1021,8 +1103,8 @@ var gameModule = (function() {
 
     function Wave(number) {
         this.id = number;
-        this.parameter = 10 * (10 + this.id);
-        this.factor = Math.floor((Math.random() * 5) + 8);
+        this.parameter = 12 * (10 + this.id);
+        this.factor = Math.floor((Math.random() * 5) + 10);
         this.number = this.factor;
         this.health = this.parameter / this.factor;
         this.speed = 5;
