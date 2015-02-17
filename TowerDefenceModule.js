@@ -217,7 +217,7 @@ var gameModule = (function() {
         for (var i = 0; i < hexes.length; i++) {
             hexes[i].addEventListener("click", function() {
                 oGame.board.selected = this.id;
-                if (this.id != oGame.board.tower) {
+                if (parseInt(this.id) !== oGame.board.tower) {
                     hexController.radialClear();
                     hexController.radialControl(oGame.board.hexes[this.id]);
                 }
@@ -238,6 +238,13 @@ var gameModule = (function() {
             oGame.waveStart();
             oGame.playerStartAttacking();
         });
+        
+        document.onkeydown = function(event) {
+            event = event || window.event;
+            if (event.keyCode === 27) {
+                hexController.radialClear();
+            }
+        };
     };
     var buyRune = function() {
         var nId = parseInt(this.id.match(/\d+/)[0]);
@@ -1025,8 +1032,8 @@ var gameModule = (function() {
                 this.dam += hex.rune.dam * asc;
                 this.as += hex.rune.as * asc;
                 this.range += hex.rune.range * desc;
-                this.cc += hex.rune.cc * desc;
-                this.cd += hex.rune.cd * desc;
+                this.cc += (hex.rune.cc * desc) * ((100 - this.cc) / 100);
+                this.cd += hex.rune.cd * desc * ((1000 - this.cd) / 1000);
                 this.ll += hex.rune.ll * asc;
                 this.ml += hex.rune.ml * asc;
                 if (hex.rune.chain === true) {
