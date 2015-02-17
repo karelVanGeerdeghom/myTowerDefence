@@ -13,9 +13,9 @@ var gameModule = (function() {
                 "cd": "Tower  Critical Damage: ",
                 "ll": "Tower Lifeleech: ",
                 "ml": "Tower Manaleech: ",
+                "slowEffect": "Slowing: ",
                 "chainEffect": "Chaining: ",
-                "splitEffect": "Splitting: ",
-                "slowEffect": "Slowing: "
+                "splitEffect": "Splitting: "
             }
         },
         player: {
@@ -63,12 +63,12 @@ var gameModule = (function() {
                     "name": "Manaleech Rune",
                     "number": 4
                 },
-                "chain": {
-                    "name": "Chaining Rune",
-                    "number": 1
-                },
                 "slow": {
                     "name": "Slowing Rune",
+                    "number": 1
+                },
+                "chain": {
+                    "name": "Chaining Rune",
                     "number": 1
                 },
                 "split": {
@@ -79,52 +79,69 @@ var gameModule = (function() {
         },
         hex: {
             buttons: {
+                "exit": {
+                    "name": "Exit",
+                    "noRune": true,
+                    "hasRune": true
+                },
                 "dam": {
                     "name": "Damage",
-                    "upgrade": true
+                    "upgrade": true,
+                    "noRune": true
                 },
                 "as": {
                     "name": "Attack Speed",
-                    "upgrade": true
+                    "upgrade": true,
+                    "noRune": true
                 },
                 "range": {
                     "name": "Range",
-                    "upgrade": true
+                    "upgrade": true,
+                    "noRune": true
                 },
                 "cc": {
                     "name": "Critical Chance",
-                    "upgrade": true
+                    "upgrade": true,
+                    "noRune": true
                 },
                 "cd": {
                     "name": "Critical Damage",
-                    "upgrade": true
+                    "upgrade": true,
+                    "noRune": true
                 },
                 "ll": {
                     "name": "Lifeleech",
-                    "upgrade": true
+                    "upgrade": true,
+                    "noRune": true
                 },
                 "ml": {
                     "name": "Manaleech",
-                    "upgrade": true
-                },
-                "chain": {
-                    "name": "Chaining",
-                    "upgrade": false
-                },
-                "split": {
-                    "name": "Splitting",
-                    "upgrade": false
+                    "upgrade": true,
+                    "noRune": true
                 },
                 "slow": {
                     "name": "Slowing",
-                    "upgrade": false
+                    "upgrade": false,
+                    "noRune": true
+                },
+                "chain": {
+                    "name": "Chaining",
+                    "upgrade": false,
+                    "noRune": true
+                },
+                "split": {
+                    "name": "Splitting",
+                    "upgrade": false,
+                    "noRune": true
                 },
                 "sell": {
-                    "name": "Sell"
+                    "name": "Sell",
+                    "hasRune": true
                 },
                 "upgrade": {
-                    "name": "Upgrade"
-                }
+                    "name": "Upgrade",
+                    "hasRune": true
+                },
             }
         }
     };
@@ -139,7 +156,7 @@ var gameModule = (function() {
         "as": 5,
         "cc": 5,
         "cd": 50,
-        "runeTypes": ["tower", "dam", "as", "range", "cc", "cd", "ll", "ml", "chain", "slow", "split"],
+        "runeTypes": ["tower", "dam", "as", "range", "cc", "cd", "ll", "ml", "slow", "chain", "split"],
         "runeCosts": [0, 100, 100, 100, 150, 150, 200, 200, 250, 250, 250],
         "runeStats": [0, 7.5, 7.5, 2, 20, 5, 0.5, 0.5],
         "enemydam": 5,
@@ -159,9 +176,6 @@ var gameModule = (function() {
         var eControl = document.createElement('div');
         eControl.setAttribute('id','control-stats');
         eControl.setAttribute('class','stats');
-        var eHex = document.createElement('div');
-        eHex.setAttribute('id','hex-stats');
-        eHex.setAttribute('class','stats');
         var eTower = document.createElement('div');
         eTower.setAttribute('id','tower-stats');
         eTower.setAttribute('class','stats');
@@ -173,7 +187,6 @@ var gameModule = (function() {
         eSkill.setAttribute('class','stats');
         eContainer.appendChild(eCanvas);
         eContainer.appendChild(eControl);
-        eContainer.appendChild(eHex);
         eContainer.appendChild(eTower);
         eContainer.appendChild(ePlayer);
         eContainer.appendChild(eSkill);
@@ -182,8 +195,7 @@ var gameModule = (function() {
     var createGame = function() {
         var eCanvas = document.getElementById('canvas');
         var ePlayer = document.getElementById('playerStats');
-        var eHex = document.getElementById('hexStats');
-        oGame = new Game(eCanvas, ePlayer, eHex);
+        oGame = new Game(eCanvas, ePlayer);
         oGame.create();
         oGame.board.setValues();
         oGame.setValues();
@@ -205,8 +217,12 @@ var gameModule = (function() {
         for (var i = 0; i < hexes.length; i++) {
             hexes[i].addEventListener("click", function() {
                 oGame.board.selected = this.id;
-                if (this.id !== oGame.board.tower) {
-                    hexController.createAllButtons(oGame.board.hexes[this.id]);
+                if (this.id != oGame.board.tower) {
+                    hexController.radialClear();
+                    hexController.radialControl(oGame.board.hexes[this.id]);
+                }
+                else {
+                    hexController.radialClear();
                 }
             });
         }
@@ -224,22 +240,26 @@ var gameModule = (function() {
         });
     };
     var buyRune = function() {
-        var nId = this.id.split("-")[1];
-        var nStat = this.id.split("-")[2];
-        var runeId = oSettings.runeTypes.indexOf(nStat);
-        
-        oGame.runeBuy(runeId, oGame.board.hexes[nId]);
-        hexController.createAllButtons(oGame.board.hexes[nId]);
+        var nId = parseInt(this.id.match(/\d+/)[0]);
+        var nHexId = this.getAttribute("hex");
+
+        oGame.runeBuy(nId, oGame.board.hexes[nHexId]);
+        hexController.radialClear();
+        hexController.radialControl(oGame.board.hexes[nHexId]);
     };
     var sellRune = function() {
-        var nId = this.id.split("-")[1];
-        oGame.runeSell(oGame.board.hexes[nId]);
-        hexController.createAllButtons(oGame.board.hexes[nId]);
+        var nHexId = this.getAttribute("hex");
+        
+        oGame.runeSell(oGame.board.hexes[nHexId]);
+        hexController.radialClear();
+        hexController.radialControl(oGame.board.hexes[nHexId]);
     };
     var upgradeRune = function() {
-        var nId = this.id.split("-")[1];
-        oGame.runeUpgrade(oGame.board.hexes[nId]);
-        hexController.createAllButtons(oGame.board.hexes[nId]);
+        var nHexId = this.getAttribute("hex");
+        
+        oGame.runeUpgrade(oGame.board.hexes[nHexId]);
+        hexController.radialClear();
+        hexController.radialControl(oGame.board.hexes[nHexId]);
     };
     var spendPoint = function(stat) {
         if (oGame.player.skillPoints > 0) {
@@ -247,8 +267,9 @@ var gameModule = (function() {
             oGame.player.skillPoints -= 1;
             playerController.showStat("skillPoints");
             skillController.showSkill(stat);
-            if (oGame.board.selected !== -1) {
-                hexController.createAllButtons(oGame.board.hexes[oGame.board.selected]);
+            if (oGame.board.selected !== -1 && oGame.radial === "open") {
+                hexController.radialClear();
+                hexController.radialControl(oGame.board.hexes[oGame.board.selected]);
             }
         }
     };
@@ -286,48 +307,130 @@ var gameModule = (function() {
         var sStat = document.createTextNode(oGame[this.name][stat]);
         eStat.appendChild(sStat);
     };
-    Controller.prototype.createAllButtons = function(hex) {
-        var eParent = document.getElementById(this.name + '-stats');
-        while (eParent.lastChild) {
-            eParent.lastChild.removeEventListener("click", buyRune);
-            eParent.lastChild.removeEventListener("click", sellRune);
-            eParent.lastChild.removeEventListener("click", upgradeRune);
-            eParent.removeChild(eParent.lastChild);
-        }
-        if (parseInt(hex.id) !== oGame.board.tower) {
-            if (!hex.rune) {
-                for (var rune in this.view['buttons']) {
-                    if (oGame.player.skill[rune] > 0 && oGame.player.mana >= oSettings.runeCosts[oSettings.runeTypes.indexOf(rune)]) {
-                        this.createButton(hex, rune, buyRune);
-                    } 
+    Controller.prototype.radialControl = function(hex) {
+        var i = 0;
+        var sSetting = "hasRune";
+        var me = this;
+        oGame.radial = "open";
+
+        for (var rune in this.view['buttons']) {
+            if (!hex.rune) { sSetting = "noRune"; }
+            if (this.view['buttons'][rune][sSetting] === true) {
+                var nDistance = 75;
+                var nSize = 50;
+                var nRadius = 20;
+                var nSine = Math.sin((i * (2 / 11) * Math.PI) + ((3 / 2) * Math.PI));
+                var nCosine = Math.cos((i * (2 / 11) * Math.PI) + ((3 / 2) * Math.PI));
+                var nX = hex.center.x + (nCosine * nDistance);
+                var nY = hex.center.y + (nSine * nDistance);
+
+                var svgButton = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                svgButton.setAttribute('cx', nX);
+                svgButton.setAttribute('cy', nY);
+                svgButton.setAttribute('r', nRadius);
+                svgButton.setAttribute('stroke', '#444');
+                svgButton.setAttribute('stroke-width', '1px');
+                svgButton.setAttribute('fill', 'url(#button-pattern-' + i + ')');
+                svgButton.setAttribute('class', 'button');
+                svgButton.setAttribute('id', 'button-' + i);
+                svgButton.setAttribute('hex', hex.id);
+
+                var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+                svgPattern.setAttribute("id", "button-pattern-" + i);
+                svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
+                svgPattern.setAttribute("x", nX - (nSize / 2));
+                svgPattern.setAttribute("y", nY - (nSize / 2));
+                svgPattern.setAttribute("width", nSize);
+                svgPattern.setAttribute("height", nSize);
+
+                var svgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                svgRect.setAttribute("width", nSize);
+                svgRect.setAttribute("height", nSize);
+                svgRect.setAttribute('fill', 'black');
+
+                var iRune = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+                iRune.setAttribute("width", nSize);
+                iRune.setAttribute("height", nSize);
+
+                var nTier = 0;
+                if (oGame.player.skill[rune] > 0) {  nTier = 1; }
+                iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + rune + nTier + '.png');
+                var sAppend = "yes";
+                var sEvent = "yes";
+                switch (rune) {
+                    case "exit":
+                        svgButton.addEventListener("click", me.radialClear);
+                    break;
+                    case "sell":
+                        svgButton.addEventListener("click", sellRune);
+                    break;
+                    case "upgrade":
+                        if(this.view['buttons'][hex.rune.name].upgrade === true) {
+                            if (hex.rune.tier > 3) {
+                                sAppend = "no";
+                            }
+                            else {
+                                iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + hex.rune.name + '0.png');
+                                if (oGame.player.skill[hex.rune.name] > hex.rune.tier && oGame.player.mana >= oSettings.runeCosts[oSettings.runeTypes.indexOf(hex.rune.name)]) {
+                                    iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + hex.rune.name + (hex.rune.tier + 1) + '.png');
+                                    svgButton.addEventListener("click", upgradeRune);
+                                }
+                            }
+                        }
+                        else {
+                            sAppend = "no";
+                        }
+                    break;
+                    default:
+                        if (oGame.player.skill[rune] > 0 && oGame.player.mana >= oSettings.runeCosts[oSettings.runeTypes.indexOf(rune)]) {
+                            if (rune === "chain" && oGame.board.chain === true) {
+                                iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + rune + '0.png');
+                                sEvent = "no";
+                            }
+                            if (rune === "split" && oGame.board.split === true) {
+                                iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + rune + '0.png');
+                                sEvent = "no";
+                            }
+                            if (rune === "slow" && oGame.board.slow === true) {
+                                iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + rune + '0.png');
+                                sEvent = "no";
+                            }
+                            if (sEvent === "yes") {
+                                svgButton.addEventListener("click", buyRune);
+                            }
+                        }
+                        else {
+                            iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + rune + '0.png');
+                        }
                 }
-            }
-            else {
-                this.createButton(hex, 'sell', sellRune);
-                if (
-                    hex.rune.tier < 4 
-                    && this.view['buttons'][hex.rune.name]["upgrade"] === true
-                    && oGame.player.mana >= oSettings.runeCosts[hex.rune.id]
-                    && oGame.player.skill[hex.rune.name] > hex.rune.tier
-                ) {
-                    this.createButton(hex, 'upgrade', upgradeRune);
-                }
+                if (sAppend === "yes") {
+                    oGame.eSvg.appendChild(svgButton); 
+                    oGame.eDefs.appendChild(svgPattern);
+                    svgPattern.appendChild(svgRect);
+                    svgPattern.appendChild(iRune);
+                }                
+                i += 1;
             }
         }
     };
-    Controller.prototype.createButton = function(hex, stat, action) {
-        var eParent = document.getElementById(this.name + '-stats');
-        if (stat === "chain" && oGame.tower.chain === true) { return; }
-        if (stat === "split" && oGame.tower.split === true) {  return; }
-        if (stat === "slow" && oGame.tower.slow === true) { return; }
+    Controller.prototype.radialClear = function() {
+        oGame.radial = "closed";
+        var me = this;
+        for (var i = 0; i < 11; i++) {
+            var ePattern = document.getElementById('button-pattern-' + i);
+            if (ePattern) {
+                oGame.eDefs.removeChild(ePattern);
+            }
+            var eButton = document.getElementById('button-' + i);
 
-        var eButton = document.createElement('button');
-        var sButton = document.createTextNode(this.view['buttons'][stat]["name"]);
-        eButton.setAttribute('id', this.name + '-' + hex.id + '-' + stat);
-        eButton.setAttribute('class', 'button ' + stat);
-        eButton.appendChild(sButton);
-        eParent.appendChild(eButton);
-        eButton.addEventListener("click", action);
+            if (eButton) {
+                eButton.removeEventListener("click", buyRune);
+                eButton.removeEventListener("click", sellRune);
+                eButton.removeEventListener("click", upgradeRune);
+                eButton.removeEventListener("click", me.radialClear);
+                oGame.eSvg.removeChild(eButton);
+            }
+        }
     };
     Controller.prototype.createAllSkills = function() {
         for (var skill in this.view['elements']) {
@@ -377,10 +480,9 @@ var gameModule = (function() {
         }
     };
  
-    function Game(eCanvas, ePlayer, eHex) {
+    function Game(eCanvas, ePlayer) {
         this.eCanvas = eCanvas;
         this.ePlayer = ePlayer;
-        this.eHex = eHex;
         this.player = new Player;
     };
     Game.prototype.create = function() {
@@ -573,7 +675,7 @@ var gameModule = (function() {
         this.board.enemies = [];
         this.tower.wave += 1;
         this.wave = new Wave(this.tower.wave);
-        console.log(this.tower.wave + " | " + this.wave.parameter);
+//        console.log(this.tower.wave + " | " + this.wave.parameter);
         towerController.showStat("wave");
         for (var i = 0; i < this.wave.number; i++) {
             var randomAngle = Math.random() * 2 * Math.PI;
@@ -715,8 +817,9 @@ var gameModule = (function() {
         enemy.health -= this.tower.dam;
         if (enemy.health <= 0) {
             this.player.mana += enemy.mana;
-            if (oGame.board.selected !== -1 && this.player.mana >= 100) {
-                hexController.createAllButtons(oGame.board.hexes[oGame.board.selected]);
+            if (oGame.board.selected !== -1 && this.player.mana >= 100 && oGame.radial === "open") {
+                hexController.radialClear();
+                hexController.radialControl(oGame.board.hexes[oGame.board.selected]);
             }
             this.player.experience += enemy.experience;
             if (this.player.experience >= this.player.maxExperience) {
@@ -842,7 +945,6 @@ var gameModule = (function() {
                 this.hexes[i].rune.chain = false;
                 this.hexes[i].rune.slow = false;
                 this.hexes[i].rune.split = false;
-
                 switch (this.hexes[i].rune.id) {
                     case 1:
                         this.hexes[i].rune.dam = this.hexes[i].rune.stats[1] * this.hexes[i].rune.tier;
@@ -866,10 +968,10 @@ var gameModule = (function() {
                         this.hexes[i].rune.ml = this.hexes[i].rune.stats[7] * this.hexes[i].rune.tier;
                         break; 
                     case 8:
-                        this.hexes[i].rune.chain = true;
+                        this.hexes[i].rune.slow = true;
                         break;
                     case 9:
-                        this.hexes[i].rune.slow = true;
+                        this.hexes[i].rune.chain = true;
                         break;
                     case 10:
                         this.hexes[i].rune.split = true;
@@ -1101,9 +1203,8 @@ var gameModule = (function() {
         this.level += 1;
         this.skillPoints += 1;
         this.health = this.maxHealth;
-        this.experience = this.experience - this.maxExperience;
+        this.experience -= this.maxExperience;
         this.maxExperience = 100 + (this.level - 1) * 10;
-        oGame.showStat("health");
         playerController.showStat("health");
         playerController.showStat("experience");
         playerController.showStat("maxExperience");
