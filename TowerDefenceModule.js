@@ -6,14 +6,12 @@ var gameModule = (function() {
             elements: {
                 "wave": "Wave: ",
                 "dps": "Tower DPS: ",
+                "accuracy": "Tower Accuracy: ",
                 "dam": "Tower Damage: ",
                 "as": "Tower Attack Speed: ",
                 "range": "Tower Range: ",
                 "cc": "Tower Critical Chance: ",
                 "cd": "Tower  Critical Damage: ",
-                "ll": "Tower Lifeleech: ",
-                "ml": "Tower Manaleech: ",
-                "slowEffect": "Slowing: ",
                 "chainEffect": "Chaining: ",
                 "splitEffect": "Splitting: "
             }
@@ -30,7 +28,11 @@ var gameModule = (function() {
                 "as": "Player Attack Speed: ",
                 "range": "Player Range: ",
                 "cc": "Player Critical Chance: ",
-                "cd": "Player  Critical Damage: "
+                "cd": "Player  Critical Damage: ",
+                "kills": "Enemies Killed: ",
+                "misses": "Enemies Missed: ",
+                "total": "Total Enemies: ",
+                "accuracy": "Accuracy: "
             }
         },
         skill: {
@@ -54,18 +56,6 @@ var gameModule = (function() {
                 "cd": {
                     "name": "Critical Damage Rune",
                     "number": 4
-                },
-                "ll": {
-                    "name": "Lifeleech Rune",
-                    "number": 4
-                },
-                "ml": {
-                    "name": "Manaleech Rune",
-                    "number": 4
-                },
-                "slow": {
-                    "name": "Slowing Rune",
-                    "number": 1
                 },
                 "chain": {
                     "name": "Chaining Rune",
@@ -109,21 +99,6 @@ var gameModule = (function() {
                     "upgrade": true,
                     "noRune": true
                 },
-                "ll": {
-                    "name": "Lifeleech",
-                    "upgrade": true,
-                    "noRune": true
-                },
-                "ml": {
-                    "name": "Manaleech",
-                    "upgrade": true,
-                    "noRune": true
-                },
-                "slow": {
-                    "name": "Slowing",
-                    "upgrade": false,
-                    "noRune": true
-                },
                 "chain": {
                     "name": "Chaining",
                     "upgrade": false,
@@ -141,7 +116,7 @@ var gameModule = (function() {
                 "upgrade": {
                     "name": "Upgrade",
                     "hasRune": true
-                },
+                }
             }
         }
     };
@@ -156,12 +131,12 @@ var gameModule = (function() {
         "as": 5,
         "cc": 5,
         "cd": 50,
-        "runeTypes": ["tower", "dam", "as", "range", "cc", "cd", "ll", "ml", "slow", "chain", "split"],
-        "runeCosts": [0, 100, 100, 100, 150, 150, 200, 200, 250, 250, 250],
-        "runeStats": [0, 7.5, 7.5, 2, 20, 5, 0.5, 0.5],
+        "runeTypes": ["tower", "dam", "as", "range", "cc", "cd", "chain", "split"],
+        "runeCosts": [0, 100, 100, 100, 150, 150, 900, 1500],
+        "runeStats": [0, 5, 5, 8, 4, 40],
         "enemydam": 5,
         "enemymana": 5,
-        "enemyexperience": 3
+        "enemyexperience": 4
     };
     var towerController = new Controller('tower');
     var playerController = new Controller('player');
@@ -186,8 +161,8 @@ var gameModule = (function() {
         eSkill.setAttribute('id','skill-stats');
         eSkill.setAttribute('class','stats');
         eContainer.appendChild(eCanvas);
-        eContainer.appendChild(eControl);
         eContainer.appendChild(eTower);
+        eContainer.appendChild(eControl);
         eContainer.appendChild(ePlayer);
         eContainer.appendChild(eSkill);
         createGame();
@@ -209,7 +184,7 @@ var gameModule = (function() {
         skillController.createAllSkills();
         skillController.showAllSkills();
         hexController.init('hex');
-        oGame.showRange();
+        oGame.createRange();
         oGame.createHealth();
         oGame.createMana();
 
@@ -259,7 +234,6 @@ var gameModule = (function() {
         
         oGame.runeSell(oGame.board.hexes[nHexId]);
         hexController.radialClear();
-        hexController.radialControl(oGame.board.hexes[nHexId]);
     };
     var upgradeRune = function() {
         var nHexId = this.getAttribute("hex");
@@ -295,10 +269,9 @@ var gameModule = (function() {
     Controller.prototype.createStat = function(stat) {
         var eStat = document.createElement('p');
         var sStat = document.createTextNode(this.view['elements'][stat]);
+        var eParent = document.getElementById(this.name + '-stats');
         eStat.setAttribute('id', this.name + '-' + stat);
         eStat.appendChild(sStat);
-        
-        var eParent = document.getElementById(this.name + '-stats');
         eParent.appendChild(eStat);
     };
     Controller.prototype.showAllStats = function() {
@@ -323,11 +296,11 @@ var gameModule = (function() {
         for (var rune in this.view['buttons']) {
             if (!hex.rune) { sSetting = "noRune"; }
             if (this.view['buttons'][rune][sSetting] === true) {
-                var nDistance = 75;
-                var nSize = 50;
-                var nRadius = 20;
-                var nSine = Math.sin((i * (2 / 11) * Math.PI) + ((3 / 2) * Math.PI));
-                var nCosine = Math.cos((i * (2 / 11) * Math.PI) + ((3 / 2) * Math.PI));
+                var nDistance = 70;
+                var nSize = 70;
+                var nRadius = 25;
+                var nSine = Math.sin((i * (2 / 8) * Math.PI) + ((3 / 2) * Math.PI));
+                var nCosine = Math.cos((i * (2 / 8) * Math.PI) + ((3 / 2) * Math.PI));
                 var nX = hex.center.x + (nCosine * nDistance);
                 var nY = hex.center.y + (nSine * nDistance);
 
@@ -395,10 +368,6 @@ var gameModule = (function() {
                                 sEvent = "no";
                             }
                             if (rune === "split" && oGame.board.split === true) {
-                                iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + rune + '0.png');
-                                sEvent = "no";
-                            }
-                            if (rune === "slow" && oGame.board.slow === true) {
                                 iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + rune + '0.png');
                                 sEvent = "no";
                             }
@@ -492,6 +461,23 @@ var gameModule = (function() {
         this.ePlayer = ePlayer;
         this.player = new Player;
     };
+    Game.prototype.setValues = function() {
+        var dam = this.player.dam * ((100 + this.board.dam) / 100);
+        var cc = this.player.cc + this.board.cc;
+        var cd = this.player.cd + this.board.cd;
+        var totalDamage = dam * (((cc / 100) * ((100 + cd) / 100)) + ((100 - cc) / 100)) * this.tower.accuracy;
+        this.tower.dam = Math.round(totalDamage * 100) / 100;
+        this.tower.as =  Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100;
+        this.tower.ms = Math.round(1000 / this.tower.as);
+        this.tower.range = this.player.range * ((100 + this.board.range) / 100);
+        this.tower.cc = Math.round((this.player.cc + this.board.cc) * 100) / 100;
+        this.tower.cd = Math.round((this.player.cd + this.board.cd) * 100) / 100;
+        this.tower.dps = Math.round(this.tower.dam * (Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100) * 100) / 100;
+        this.tower.chain = this.board.chain;
+        this.tower.chainEffect = this.board.chainEffect;
+        this.tower.split = this.board.split;
+        this.tower.splitEffect = this.board.splitEffect;
+    };
     Game.prototype.create = function() {
         this.createSvg();
         this.createDefs();
@@ -516,28 +502,7 @@ var gameModule = (function() {
     Game.prototype.createDefs = function() {
         this.eDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
     };
-    Game.prototype.setValues = function() {
-        var dam = this.player.dam * ((100 + this.board.dam) / 100);
-        var cc = this.player.cc + this.board.cc;
-        var cd = this.player.cd + this.board.cd;
-        var totalDamage = dam * (cc * (100 + cd) / 10000) + dam * ((100 - cc) / 100);
-        this.tower.dam = Math.round(totalDamage * 100) / 100;
-        this.tower.as =  Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100;
-        this.tower.ms = Math.round(1000 / this.tower.as);
-        this.tower.range = this.player.range * ((100 + this.board.range) / 100);
-        this.tower.cc = Math.round((this.player.cc + this.board.cc) * 100) / 100;
-        this.tower.cd = Math.round((this.player.cd + this.board.cd) * 100) / 100;
-        this.tower.dps = Math.round(this.tower.dam * (Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100) * 100) / 100;
-        this.tower.ml = this.board.ml;
-        this.tower.ll = this.board.ll;
-        this.tower.chain = this.board.chain;
-        this.tower.chainEffect = this.board.chainEffect;
-        this.tower.slow = this.board.slow;
-        this.tower.slowEffect = this.board.slowEffect;
-        this.tower.split = this.board.split;
-        this.tower.splitEffect = this.board.splitEffect;
-    };
-    Game.prototype.showRange = function() {
+    Game.prototype.createRange = function() {
         var svgRange = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         svgRange.setAttribute('cx', this.board.center.x);
         svgRange.setAttribute('cy', this.board.center.y);
@@ -562,15 +527,15 @@ var gameModule = (function() {
         var pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
         pattern.setAttribute("id", "health");
         pattern.setAttribute("patternUnits", "userSpaceOnUse");
-        pattern.setAttribute("x", -395);
-        pattern.setAttribute("y", 75);
-        pattern.setAttribute("width", 160);
-        pattern.setAttribute("height", 320);
+        pattern.setAttribute("x", -250);
+        pattern.setAttribute("y", 250);
+        pattern.setAttribute("width", 140);
+        pattern.setAttribute("height", 140);
 
         var image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        image.setAttribute("width", 160);
-        image.setAttribute("height", 320);
-        image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/globe-health.png');
+        image.setAttribute("width", 140);
+        image.setAttribute("height", 140);
+        image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/temp.png');
 
         pattern.appendChild(image);
         this.eDefs.appendChild(pattern);
@@ -591,32 +556,29 @@ var gameModule = (function() {
         var pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
         pattern.setAttribute("id", "mana");
         pattern.setAttribute("patternUnits", "userSpaceOnUse");
-        pattern.setAttribute("x", -185);
-        pattern.setAttribute("y", 75);
-        pattern.setAttribute("width", 160);
-        pattern.setAttribute("height", 320);
+        pattern.setAttribute("x", 250);
+        pattern.setAttribute("y", 250);
+        pattern.setAttribute("width", 140);
+        pattern.setAttribute("height", 140);
 
         var image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        image.setAttribute("width", 160);
-        image.setAttribute("height", 320);
-        image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/globe-mana.png');
-//        image.setAttribute('transform', 'translate(' + parseFloat(this.angleDegrees - 90) + ' ' + this.size + ' ' + this.size + ')');
+        image.setAttribute("width", 140);
+        image.setAttribute("height", 140);
+        image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/mana.png');
 
         pattern.appendChild(image);
         this.eDefs.appendChild(pattern);
 
         svgHealth.setAttribute("fill", "url(#mana)");
     };
+    Game.prototype.showRange = function() {
+        var svgRange = document.getElementById('towerRange');
+        svgRange.setAttribute('r', this.tower.range);
+    };
     Game.prototype.showHealth = function() {
-        var health = document.getElementById('health');
-        health.setAttribute("y", 75 + ((1 - (oGame.player.health / oGame.player.maxHealth)) * 145));
     };
     Game.prototype.showMana = function() {
         
-    };
-    Game.prototype.resetRange = function() {
-        var svgRange = document.getElementById('towerRange');
-        svgRange.setAttribute('r', this.tower.range);
     };
     Game.prototype.runeBuy = function(id, hex) {
         hex.rune = new Rune(id);
@@ -633,7 +595,7 @@ var gameModule = (function() {
         this.board.runeDraw(this.eDefs);
         this.board.setValues();
         this.setValues();
-        this.resetRange();
+        this.showRange();
         towerController.showAllStats();
     };
     Game.prototype.runeSell = function(hex) {
@@ -662,7 +624,7 @@ var gameModule = (function() {
         this.board.runeDraw(this.eDefs);
         this.board.setValues();
         this.setValues();
-        this.resetRange();
+        this.showRange();
         towerController.showAllStats();
     };
     Game.prototype.runeUpgrade = function(hex) {
@@ -675,20 +637,27 @@ var gameModule = (function() {
         this.board.runeDraw(this.eDefs);
         this.board.setValues();
         this.setValues();
-        this.resetRange();
+        this.showRange();
         towerController.showAllStats();
     };
     Game.prototype.waveCreate = function() {
         this.board.enemies = [];
         this.tower.wave += 1;
         this.wave = new Wave(this.tower.wave);
-//        console.log(this.tower.wave + " | " + this.wave.parameter);
+        if (this.tower.wave >= 10) {
+            this.tower.accuracy = this.player.accuracy;
+            this.board.setValues();
+            this.setValues();
+        }
         towerController.showStat("wave");
+        towerController.showStat("accuracy");
+        towerController.showStat("dam");
+        towerController.showStat("dps");
         for (var i = 0; i < this.wave.number; i++) {
             var randomAngle = Math.random() * 2 * Math.PI;
             var sine = Math.sin(randomAngle);
             var cosine = Math.cos(randomAngle);
-            var punt = new Punt(sine * (600), cosine * (600));
+            var punt = new Punt(sine * (650), cosine * (650));
             var enemy = new Enemy(i, this.board.center, punt, this.wave);
             this.board.enemies.push(enemy);
         }
@@ -708,94 +677,93 @@ var gameModule = (function() {
         }, 35);
     };
     Game.prototype.enemyMove = function (enemy, to) {
-        enemy.freeze -= 1;
-        if (enemy.freeze <= 0) {
-            var slow = 1;
-            if (this.tower.slowEffect === true && this.getDistance(enemy.center, to) <= this.tower.range) { slow = 0.5; }
-            var x = enemy.center.x + enemy.cosine * enemy.speed * slow;
-            var y = enemy.center.y + enemy.sine * enemy.speed * slow;
-            var from = new Punt(x, y);
-            enemy.pattern.setAttribute("x", x);
-            enemy.pattern.setAttribute("y", y);
-            enemy.element.setAttribute('cx', x);
-            enemy.element.setAttribute('cy', y);
-            enemy.element.setAttribute('x', x);
-            enemy.element.setAttribute('y', y);
-            enemy.center = from;
-            enemy.animate += 1;
-            if (enemy.animate % Math.floor(enemy.mod * 5) === 0) {
-                enemy.step += 1;
-                enemy.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + enemy.type + '-' + enemy.direction + '-' + enemy.step % 6 + '.svg');
-            }
-            if (this.getDistance(enemy.center, to) < 50) {
-                this.player.health -= enemy.damage;
-                playerController.showStat("health");
-                oGame.showHealth();
-                delete enemy["pattern"];
-                var eEnemy = document.getElementById('enemy' + enemy.id);
-                if (eEnemy) { this.eDefs.removeChild(eEnemy); }
-                this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
-                enemy.element.remove();
-                clearInterval(enemy.interval);
-            }
+        var x = enemy.center.x + enemy.cosine * enemy.speed;
+        var y = enemy.center.y + enemy.sine * enemy.speed;
+        var from = new Punt(x, y);
+        enemy.pattern.setAttribute("x", x);
+        enemy.pattern.setAttribute("y", y);
+        enemy.element.setAttribute('cx', x);
+        enemy.element.setAttribute('cy', y);
+        enemy.element.setAttribute('x', x);
+        enemy.element.setAttribute('y', y);
+        enemy.center = from;
+        enemy.animate += 1;
+        if (enemy.animate % Math.floor(enemy.mod * 5) === 0) {
+            enemy.step += 1;
+            enemy.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + enemy.type + '-' + enemy.direction + '-' + enemy.step % 6 + '.svg');
         }
+        if (this.getDistance(enemy.center, to) < 50) {
+            this.player.health -= enemy.damage;
+            playerController.showStat("health");
+            if (this.tower.wave >= 10) {
+                this.player.misses += 1;
+                playerController.showStat("misses");
+            }
+            oGame.showHealth();
+            delete enemy["pattern"];
+            var eEnemy = document.getElementById('enemy' + enemy.id);
+            if (eEnemy) { this.eDefs.removeChild(eEnemy); }
+            this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
+            enemy.element.remove();
+            clearInterval(enemy.interval);
+        }
+
     };
-    Game.prototype.enemyClosest = function(from, range) {
-        var nClosest = 500;
+    Game.prototype.enemyClosest = function(id, from, range) {
+        var nClosest = 1000;
         var idClosest = -1;
         for (var i = 0; i < this.board.enemies.length; i++) {
-            var nEnemyDistance = this.getDistance(from, this.board.enemies[i].center);
-            if (nEnemyDistance < range && nEnemyDistance < nClosest) {
-                nClosest = nEnemyDistance;
-                idClosest = i;
+            if (i !== id) {
+                var nEnemyDistance = this.getDistance(from, this.board.enemies[i].center);
+                if (nEnemyDistance < range && nEnemyDistance < nClosest) {
+                    nClosest = nEnemyDistance;
+                    idClosest = i;
+                }
             }
+
         }
         return idClosest;
     };
-    Game.prototype.enemyFurthest = function(from, range) {
+    Game.prototype.enemyFurthest = function(id, from, range) {
         var nFurthest = 0;
         var idFurthest = -1;
         for (var i = 0; i < this.board.enemies.length; i++) {
-            var nEnemyDistance = this.getDistance(from, this.board.enemies[i].center);
-            if (nEnemyDistance < range && nEnemyDistance > nFurthest) {
-                nFurthest = nEnemyDistance;
-                idFurthest = i;
+            if (i !== id) {
+                var nEnemyDistance = this.getDistance(from, this.board.enemies[i].center);
+                if (nEnemyDistance < range && nEnemyDistance > nFurthest) {
+                    nFurthest = nEnemyDistance;
+                    idFurthest = i;
+                }
             }
         }
         return idFurthest;
     };
     Game.prototype.playerStartAttacking = function() {
         var me = this;
-        var freezeCount = 0;
         var color = "red";
-        var chainColor = "white";
         this.player.interval = setInterval(function() {
-            var idClosest = me.enemyClosest(me.board.center, me.tower.range);
+            var idClosest = me.enemyClosest(-1, me.board.center, me.tower.range);
             if (idClosest >= 0) {
                 var oClosestPunt = new Punt(me.board.enemies[idClosest].center.x, me.board.enemies[idClosest].center.y);
-                me.board.enemies[idClosest].freeze = freezeCount;
                 me.board.showAttack(me.board.center, oClosestPunt, color);
                 me.playerAttack(me.board.enemies[idClosest]);
                 if (me.tower.chainEffect === true) {
-                    var idClosestChained = me.enemyFurthest(oClosestPunt, me.tower.range / 2);
+                    var idClosestChained = me.enemyFurthest(idClosest, oClosestPunt, me.tower.range / 2);
                     if (idClosestChained >= 0) {
-                        me.board.enemies[idClosestChained].freeze = freezeCount;
                         me.board.showAttack(oClosestPunt, me.board.enemies[idClosestChained].center, color);
                         me.playerAttack(me.board.enemies[idClosestChained]);
                     }
                 }
             }
             if (me.tower.splitEffect === true) {
-                var idFurthest = me.enemyFurthest(me.board.center, me.tower.range);
+                var idFurthest = me.enemyFurthest(-1, me.board.center, me.tower.range);
                 if (idFurthest >= 0) {
                     var oFurthestPunt = new Punt(me.board.enemies[idFurthest].center.x, me.board.enemies[idFurthest].center.y);
-                    me.board.enemies[idFurthest].freeze = freezeCount;
                     me.board.showAttack(me.board.center, oFurthestPunt, color);
                     me.playerAttack(me.board.enemies[idFurthest]);
                     if (me.tower.chainEffect === true) {
-                        var idFurthestChained = me.enemyFurthest(oFurthestPunt, me.tower.range / 2);
+                        var idFurthestChained = me.enemyClosest(idFurthest, oFurthestPunt, me.tower.range / 2);
                         if (idFurthestChained >= 0) {
-                            me.board.enemies[idFurthestChained].freeze = freezeCount;
                             me.board.showAttack(oFurthestPunt, me.board.enemies[idFurthestChained].center, color);
                             me.playerAttack(me.board.enemies[idFurthestChained]);
                         }
@@ -808,21 +776,12 @@ var gameModule = (function() {
         }, this.tower.ms);
     };
     Game.prototype.playerAttack = function(enemy) {
-        if (this.tower.ll > 0 || this.tower.ml > 0) {
-            if (this.tower.ll > 0) {
-                this.player.health += this.tower.dam * (this.tower.ll / 100);
-                if (this.player.health > this.player.maxHealth) {
-                    this.player.health = this.player.maxHealth;
-                }
-                playerController.showStat("health");
-            }
-            if (this.tower.ml > 0) {
-                this.player.mana += this.tower.dam * (this.tower.ml / 100);
-                playerController.showStat("mana");
-            }
-        }
         enemy.health -= this.tower.dam;
         if (enemy.health <= 0) {
+            if (this.tower.wave >= 10) {
+                this.player.kills += 1;
+                this.player.accuracy = this.player.kills / this.player.total;
+            }
             this.player.mana += enemy.mana;
             if (oGame.board.selected !== -1 && this.player.mana >= 100 && oGame.radial === "open") {
                 hexController.radialClear();
@@ -832,6 +791,8 @@ var gameModule = (function() {
             if (this.player.experience >= this.player.maxExperience) {
                 this.player.levelUp();
             };
+            playerController.showStat("kills");
+            playerController.showStat("accuracy");
             playerController.showStat("mana");
             playerController.showStat("experience");
             this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
@@ -855,6 +816,68 @@ var gameModule = (function() {
         this.hexes = [];
         this.enemies = [];
         this.selected = -1;
+    };
+    Board.prototype.setValues = function() {
+        this.dam = 0;
+        this.as = 0;
+        this.range = 0;
+        this.cc = 0;
+        this.cd = 0;
+        this.chain = false;
+        this.chainEffect = false;
+        this.split = false;
+        this.splitEffect = false;
+        
+        var aRange = [];
+        var aCc = [];
+        var aCd = [];        
+        
+        for (var i = 0; i < this.hexes.length; i++) {
+            if (this.hexes[i].rune && this.tower !== i) {
+                var hex = this.hexes[i];
+                var asc;
+                var desc;
+                switch (hex.connections.length) {
+                    case 0: asc = 0; desc = 0; break;
+                    case 1: asc = 0.3; desc = 1.8; break;
+                    case 2: asc = 0.6; desc = 1.5; break;
+                    case 3: asc = 0.9; desc = 1.2; break;
+                    case 4: asc = 1.2; desc = 0.9; break;
+                    case 5: asc = 1.5; desc = 0.6; break;
+                    case 6: asc = 1.8; desc = 0.3; break;
+                }
+                var nRange = hex.rune.range * asc;
+                if (nRange > 0) { aRange.push(nRange); }
+                var nCc = hex.rune.cc * desc;
+                if (nCc > 0) { aCc.push(nCc); }
+                var nCd = hex.rune.cd * desc;
+                if (nCd > 0) { aCd.push(nCd); }
+
+                this.dam += hex.rune.dam * asc;
+                this.as += hex.rune.as * asc;
+
+                if (hex.rune.chain === true) {
+                    this.chain = true;
+                    if (hex.towerConnected === true) { this.chainEffect = true; }
+                }
+                if (hex.rune.split === true) {
+                    this.split = true;
+                    if (hex.towerConnected === true) { this.splitEffect = true; }
+                }
+            }
+        }
+        aRange.sort(function(a,b){ return b - a; });
+        for (var i = 0; i < aRange.length; i++) {
+            this.range += aRange[i] * ((100 - this.range) / 100);
+        }
+        aCc.sort(function(a,b){ return b - a; }); 
+        for (var i = 0; i < aCc.length; i++) {
+            this.cc += aCc[i] * ((100 - this.cc) / 100);
+        }
+        aCd.sort(function(a,b){ return b - a; });
+        for (var i = 0; i < aCd.length; i++) {
+            this.cd += aCd[i] * ((1000 - this.cd) / 1000);
+        }
     };
     Board.prototype.hexCreate = function() {
         var x = this.center.x - this.height * (this.radius + this.radius);
@@ -948,9 +971,7 @@ var gameModule = (function() {
                 this.hexes[i].rune.range = 0;
                 this.hexes[i].rune.cc = 0;
                 this.hexes[i].rune.cd = 0;
-                this.hexes[i].rune.ml = 0;
                 this.hexes[i].rune.chain = false;
-                this.hexes[i].rune.slow = false;
                 this.hexes[i].rune.split = false;
                 switch (this.hexes[i].rune.id) {
                     case 1:
@@ -960,27 +981,18 @@ var gameModule = (function() {
                         this.hexes[i].rune.as = this.hexes[i].rune.stats[2] * this.hexes[i].rune.tier;
                         break;
                     case 3:
-                        this.hexes[i].rune.range = this.hexes[i].rune.stats[5] * this.hexes[i].rune.tier;
+                        this.hexes[i].rune.range = this.hexes[i].rune.stats[3] * this.hexes[i].rune.tier;
                         break;
                     case 4:
-                        this.hexes[i].rune.cc = this.hexes[i].rune.stats[3] * this.hexes[i].rune.tier;
+                        this.hexes[i].rune.cc = this.hexes[i].rune.stats[4] * this.hexes[i].rune.tier;
                         break;
                     case 5:
-                        this.hexes[i].rune.cd = this.hexes[i].rune.stats[4] * this.hexes[i].rune.tier;
+                        this.hexes[i].rune.cd = this.hexes[i].rune.stats[5] * this.hexes[i].rune.tier;
                         break;
                     case 6:
-                        this.hexes[i].rune.ll = this.hexes[i].rune.stats[6] * this.hexes[i].rune.tier;
-                        break;
-                    case 7:
-                        this.hexes[i].rune.ml = this.hexes[i].rune.stats[7] * this.hexes[i].rune.tier;
-                        break; 
-                    case 8:
-                        this.hexes[i].rune.slow = true;
-                        break;
-                    case 9:
                         this.hexes[i].rune.chain = true;
                         break;
-                    case 10:
+                    case 7:
                         this.hexes[i].rune.split = true;
                         break;
                 }
@@ -999,56 +1011,6 @@ var gameModule = (function() {
             delete this.hexes[i]["pattern"];
             var eThisHex = document.getElementById('pattern' + this.hexes[i].id);
             if (eThisHex) { defs.removeChild(eThisHex); }
-        }
-    };
-    Board.prototype.setValues = function() {
-        this.dam = 0;
-        this.as = 0;
-        this.range = 0;
-        this.cc = 0;
-        this.cd = 0;
-        this.ll = 0;
-        this.ml = 0;
-        this.chain = false;
-        this.chainEffect = false;
-        this.slow = false;
-        this.slowEffect = false;
-        this.split = false;
-        this.splitEffect = false;
-        for (var i = 0; i < this.hexes.length; i++) {
-            if (this.hexes[i].rune && this.tower !== i) {
-                var hex = this.hexes[i];
-                var asc;
-                var desc;
-                switch (hex.connections.length) {
-                    case 0: asc = 0; desc = 0; break;
-                    case 1: asc = 0.3; desc = 1.8; break;
-                    case 2: asc = 0.6; desc = 1.5; break;
-                    case 3: asc = 0.9; desc = 1.2; break;
-                    case 4: asc = 1.2; desc = 0.9; break;
-                    case 5: asc = 1.5; desc = 0.6; break;
-                    case 6: asc = 1.8; desc = 0.3; break;
-                }
-                this.dam += hex.rune.dam * asc;
-                this.as += hex.rune.as * asc;
-                this.range += hex.rune.range * desc;
-                this.cc += (hex.rune.cc * desc) * ((100 - this.cc) / 100);
-                this.cd += hex.rune.cd * desc * ((1000 - this.cd) / 1000);
-                this.ll += hex.rune.ll * asc;
-                this.ml += hex.rune.ml * asc;
-                if (hex.rune.chain === true) {
-                    this.chain = true;
-                    if (hex.towerConnected === true) { this.chainEffect = true; }
-                }
-                if (hex.rune.slow === true) {
-                    this.slow = true;
-                    if (hex.towerConnected === true) { this.slowEffect = true; }
-                }
-                if (hex.rune.split === true) {
-                    this.split = true;
-                    if (hex.towerConnected === true) { this.splitEffect = true; }
-                }
-            }
         }
     };
     Board.prototype.showAttack = function(source, target, color) {
@@ -1149,12 +1111,11 @@ var gameModule = (function() {
         this.angleDegrees = Math.atan2(to.y - this.center.y, to.x - this.center.x) * 180 / Math.PI;
         this.sine = Math.sin(this.angleRadians);
         this.cosine = Math.cos(this.angleRadians);
-        this.direction = 0;//Math.round(Math.random());
-        this.type = 0;//Math.floor(Math.random() * 4);
+        this.direction = Math.round(Math.random());
+        this.type = Math.floor(Math.random() * 4);
         this.size = 17 * this.mod;
         this.animate = 0;
         this.step = 0;
-        this.freeze = 0;
     };
     Enemy.prototype.element = function() {
         this.element = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -1194,6 +1155,10 @@ var gameModule = (function() {
     function Player() {
         this.level = 1;
         this.experience = 0;
+        this.kills = 0;
+        this.misses = 0;
+        this.total = 0;
+        this.accuracy = 1;
         this.maxExperience = 100 + (this.level - 1) * 10;
         this.skillPoints = 0;
         this.health = oSettings.health;
@@ -1208,39 +1173,41 @@ var gameModule = (function() {
     };
     Player.prototype.levelUp = function() {
         this.level += 1;
+        this.dam += 1;
         this.skillPoints += 1;
         this.health = this.maxHealth;
         this.experience -= this.maxExperience;
         this.maxExperience = 100 + (this.level - 1) * 10;
-        playerController.showStat("health");
-        playerController.showStat("experience");
-        playerController.showStat("maxExperience");
-        playerController.showStat("level");
-        playerController.showStat("skillPoints");
+        oGame.board.setValues();
+        oGame.setValues();
+        towerController.showAllStats();
+        playerController.showAllStats();
     };
 
     function Wave(number) {
         this.id = number;
-        this.parameter = 8 * (10 + this.id) + Math.pow(this.id / 3, 2);
-        this.factor = Math.floor((Math.random() * 5) + 10);
+        this.parameter = 100 + Math.pow(this.id / 1.3, 2) + Math.pow(this.id / 14, 3) + Math.pow(this.id / 16, 4) + Math.pow(this.id / 17, 5);
+        this.factor = Math.round((Math.random() * 4) + 12);
         this.number = this.factor;
         this.health = this.parameter / this.factor;
         this.speed = 5;
+        if (this.id >= 10) {
+            oGame.player.total += this.number;
+            playerController.showStat("total");
+        }
     };
     function Skill() {
         this.dam = 1;
-        this.as = 1;
+        this.as = 0;
         this.range = 0;
         this.cc = 0;
         this.cd = 0;
-        this.ll = 0;
-        this.ml = 0;
-        this.chain = 0;
-        this.slow = 0;
-        this.split = 0;
+        this.chain = 1;
+        this.split = 1;
     };
     function Tower() {
         this.wave = 0;
+        this.accuracy = 1;
     };
     function Punt(x, y) {
         this.x = x;
@@ -1256,8 +1223,6 @@ var gameModule = (function() {
         this.cc = 0;
         this.cd = 0;
         this.range = 0;
-        this.ml = 0;
-        this.ll = 0;
     };
 
     return {
