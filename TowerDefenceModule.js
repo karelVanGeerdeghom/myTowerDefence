@@ -121,9 +121,9 @@ var gameModule = (function() {
         }
     };
     var oSettings =  {
-        "size": 800,
+        "size": 900,
         "radius": 4,
-        "side": 25,
+        "side": 28,
         "health": 100,
         "mana": 200,
         "range": 150,
@@ -185,8 +185,8 @@ var gameModule = (function() {
         skillController.showAllSkills();
         hexController.init('hex');
         oGame.createRange();
-        oGame.createHealth();
-        oGame.createMana();
+        oGame.createGlobe("health");
+        oGame.createGlobe("mana");
 
         var hexes = document.getElementsByTagName("polygon");
         for (var i = 0; i < hexes.length; i++) {
@@ -254,6 +254,36 @@ var gameModule = (function() {
             }
         }
     };
+    
+    function getDistance(from, to) {
+        return Math.sqrt(Math.pow(from.x - to.x, 2) + Math.pow(from.y - to.y, 2));
+    };
+    function getHeight(radius, amount) {
+        var eps = 1e-7;
+        var result = 0;
+        var low = 0;
+        var high = 2 * radius;
+        var full = 4 * Math.pow(radius, 3) * Math.PI / 3;
+        var volume = (full / 100) * amount;
+
+        if (amount !== 0 && amount !== 50 && amount !== 100) {
+            while (high - low > eps) {
+                var mid = (low + high) / 2;
+                var vol = Math.PI * Math.pow(mid, 2) * radius - Math.PI * Math.pow(mid, 3) / 3;
+
+                if (vol < volume - eps) { low = mid; }
+                if (vol > volume + eps) { high = mid; }
+            }
+
+            var vol = Math.PI * low * low * radius - Math.PI * low * low * low / 3;
+            if (Math.abs(vol - volume) < 1e-2) { result = low; }
+
+            return result;
+        }
+        if (amount === 100) {  return radius * 2; }
+        if (amount === 50) { return radius; }
+        if (amount === 0) { return 0; }
+    };
 
     function Controller(name) {
         this.name = name;
@@ -296,7 +326,7 @@ var gameModule = (function() {
         for (var rune in this.view['buttons']) {
             if (!hex.rune) { sSetting = "noRune"; }
             if (this.view['buttons'][rune][sSetting] === true) {
-                var nDistance = 70;
+                var nDistance = 68;
                 var nSize = 70;
                 var nRadius = 25;
                 var nSine = Math.sin((i * (2 / 8) * Math.PI) + ((3 / 2) * Math.PI));
@@ -513,77 +543,76 @@ var gameModule = (function() {
         svgRange.setAttribute('id', 'towerRange');
         this.eSvg.appendChild(svgRange);  
     };
-    Game.prototype.createHealth = function() {
-        var svgHealth = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        svgHealth.setAttribute('cx', -325);
-        svgHealth.setAttribute('cy', 325);
-        svgHealth.setAttribute('r', 70);
-        svgHealth.setAttribute('stroke', '#444');
-        svgHealth.setAttribute('stroke-width', '1px');
-        svgHealth.setAttribute('fill', 'none');
-        svgHealth.setAttribute('id', 'healthglobe');
-        this.eSvg.appendChild(svgHealth);
+    Game.prototype.createGlobe = function(stat) {
+        switch (stat) {
+            case "health": var nX = -1; break;
+            case "mana": var nX = 1; break;
+        }
+        var nRadius = 70;
+        var svgGlobe = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        svgGlobe.setAttribute('cx', 365 * nX);
+        svgGlobe.setAttribute('cy', 370);
+        svgGlobe.setAttribute('r', nRadius);
+        svgGlobe.setAttribute('stroke', '#444');
+        svgGlobe.setAttribute('stroke-width', '1px');
+        svgGlobe.setAttribute('fill', 'none');
+        this.eSvg.appendChild(svgGlobe);
         
-        var pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-        pattern.setAttribute("id", "health");
-        pattern.setAttribute("patternUnits", "userSpaceOnUse");
-        pattern.setAttribute("x", -250);
-        pattern.setAttribute("y", 250);
-        pattern.setAttribute("width", 140);
-        pattern.setAttribute("height", 140);
+        var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        svgPattern.setAttribute("id", "pattern-globe-" + stat);
+        svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
+        svgPattern.setAttribute("x", 265 * nX);
+        svgPattern.setAttribute("y", 270);
+        svgPattern.setAttribute("width", 200);
+        svgPattern.setAttribute("height", 200);
 
-        var image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        image.setAttribute("width", 140);
-        image.setAttribute("height", 140);
-        image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/temp.png');
-
-        pattern.appendChild(image);
-        this.eDefs.appendChild(pattern);
-
-        svgHealth.setAttribute("fill", "url(#health)");
-    };
-    Game.prototype.createMana = function() {
-        var svgHealth = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        svgHealth.setAttribute('cx', 325);
-        svgHealth.setAttribute('cy', 325);
-        svgHealth.setAttribute('r', 70);
-        svgHealth.setAttribute('stroke', '#444');
-        svgHealth.setAttribute('stroke-width', '2px');
-        svgHealth.setAttribute('fill', 'none');
-        svgHealth.setAttribute('id', 'managlobe');
-        this.eSvg.appendChild(svgHealth);  
+        var svgFull = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        svgFull.setAttribute("width", 200);
+        svgFull.setAttribute("height", 200);
+        svgFull.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/globe-' + stat + '.png');
         
-        var pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-        pattern.setAttribute("id", "mana");
-        pattern.setAttribute("patternUnits", "userSpaceOnUse");
-        pattern.setAttribute("x", 250);
-        pattern.setAttribute("y", 250);
-        pattern.setAttribute("width", 140);
-        pattern.setAttribute("height", 140);
+        var svgEmpty = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        svgEmpty.setAttribute("x", 0);
+        svgEmpty.setAttribute("y", -161);
+        svgEmpty.setAttribute("width", 200);
+        svgEmpty.setAttribute("height", 200);
+        svgEmpty.setAttribute('id', 'globe-' + stat);
+        svgEmpty.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/globe-empty.png');
+        
 
-        var image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        image.setAttribute("width", 140);
-        image.setAttribute("height", 140);
-        image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/mana.png');
+        svgPattern.appendChild(svgFull);
+        svgPattern.appendChild(svgEmpty);
+        this.eDefs.appendChild(svgPattern);
 
-        pattern.appendChild(image);
-        this.eDefs.appendChild(pattern);
-
-        svgHealth.setAttribute("fill", "url(#mana)");
+        svgGlobe.setAttribute("fill", "url(#pattern-globe-" + stat + ")");
     };
     Game.prototype.showRange = function() {
         var svgRange = document.getElementById('towerRange');
         svgRange.setAttribute('r', this.tower.range);
     };
-    Game.prototype.showHealth = function() {
-    };
-    Game.prototype.showMana = function() {
+    Game.prototype.showGlobe = function(stat) {
+        var nRadius = 70;
         
+        switch(stat) {
+            case "health": var nAmount = this.player[stat]; break;
+            case "mana":
+                if (this.player[stat] > 200) {
+                    var nAmount = 100;
+                }
+                else {
+                    var nAmount = this.player[stat] / 2;
+                }
+            break;
+        }
+        var svgEmpty = document.getElementById('globe-' + stat);
+        var nOffset = getHeight(nRadius, nAmount);
+        svgEmpty.setAttribute("y", -(21 + nOffset));
     };
     Game.prototype.runeBuy = function(id, hex) {
         hex.rune = new Rune(id);
         this.player.mana -= oSettings.runeCosts[id];
         playerController.showStat("mana");
+        oGame.showGlobe("mana");
         if (this.board.hexCheckConnected(hex)) {
             hex.rune.tier = 1;
             hex.towerConnected = true;
@@ -600,6 +629,7 @@ var gameModule = (function() {
     };
     Game.prototype.runeSell = function(hex) {
         this.player.mana += oSettings.runeCosts[hex.rune.id] * hex.rune.tier;
+        oGame.showGlobe("mana");
         playerController.showStat("mana");
         delete hex.rune;
         hex.element.setAttribute("fill", "black");
@@ -630,6 +660,7 @@ var gameModule = (function() {
     Game.prototype.runeUpgrade = function(hex) {
         hex.rune.tier += 1;
         this.player.mana -= oSettings.runeCosts[hex.rune.id];
+        oGame.showGlobe("mana");
         playerController.showStat("mana");
         this.board.runeRemove(this.eDefs);
         this.board.hexConnect();
@@ -644,7 +675,7 @@ var gameModule = (function() {
         this.board.enemies = [];
         this.tower.wave += 1;
         this.wave = new Wave(this.tower.wave);
-        if (this.tower.wave >= 10) {
+        if (this.tower.wave > 10) {
             this.tower.accuracy = this.player.accuracy;
             this.board.setValues();
             this.setValues();
@@ -692,14 +723,14 @@ var gameModule = (function() {
             enemy.step += 1;
             enemy.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + enemy.type + '-' + enemy.direction + '-' + enemy.step % 6 + '.svg');
         }
-        if (this.getDistance(enemy.center, to) < 50) {
+        if (getDistance(enemy.center, to) < 50) {
             this.player.health -= enemy.damage;
             playerController.showStat("health");
-            if (this.tower.wave >= 10) {
+            if (this.tower.wave > 10) {
                 this.player.misses += 1;
                 playerController.showStat("misses");
             }
-            oGame.showHealth();
+            oGame.showGlobe("health");
             delete enemy["pattern"];
             var eEnemy = document.getElementById('enemy' + enemy.id);
             if (eEnemy) { this.eDefs.removeChild(eEnemy); }
@@ -714,7 +745,7 @@ var gameModule = (function() {
         var idClosest = -1;
         for (var i = 0; i < this.board.enemies.length; i++) {
             if (i !== id) {
-                var nEnemyDistance = this.getDistance(from, this.board.enemies[i].center);
+                var nEnemyDistance = getDistance(from, this.board.enemies[i].center);
                 if (nEnemyDistance < range && nEnemyDistance < nClosest) {
                     nClosest = nEnemyDistance;
                     idClosest = i;
@@ -729,7 +760,7 @@ var gameModule = (function() {
         var idFurthest = -1;
         for (var i = 0; i < this.board.enemies.length; i++) {
             if (i !== id) {
-                var nEnemyDistance = this.getDistance(from, this.board.enemies[i].center);
+                var nEnemyDistance = getDistance(from, this.board.enemies[i].center);
                 if (nEnemyDistance < range && nEnemyDistance > nFurthest) {
                     nFurthest = nEnemyDistance;
                     idFurthest = i;
@@ -778,11 +809,12 @@ var gameModule = (function() {
     Game.prototype.playerAttack = function(enemy) {
         enemy.health -= this.tower.dam;
         if (enemy.health <= 0) {
-            if (this.tower.wave >= 10) {
+            if (this.tower.wave > 10) {
                 this.player.kills += 1;
                 this.player.accuracy = this.player.kills / this.player.total;
             }
             this.player.mana += enemy.mana;
+            oGame.showGlobe("mana");
             if (oGame.board.selected !== -1 && this.player.mana >= 100 && oGame.radial === "open") {
                 hexController.radialClear();
                 hexController.radialControl(oGame.board.hexes[oGame.board.selected]);
@@ -802,9 +834,6 @@ var gameModule = (function() {
             enemy.element.remove();
             clearInterval(enemy.interval);
         }
-    };
-    Game.prototype.getDistance = function(from, to) {
-        return Math.sqrt(Math.pow(from.x - to.x, 2) + Math.pow(from.y - to.y, 2));
     };
 
     function Board(canvas, center, radius, side) {
@@ -1182,6 +1211,7 @@ var gameModule = (function() {
         oGame.setValues();
         towerController.showAllStats();
         playerController.showAllStats();
+        oGame.showGlobe("health");
     };
 
     function Wave(number) {
@@ -1191,7 +1221,7 @@ var gameModule = (function() {
         this.number = this.factor;
         this.health = this.parameter / this.factor;
         this.speed = 5;
-        if (this.id >= 10) {
+        if (this.id > 10) {
             oGame.player.total += this.number;
             playerController.showStat("total");
         }
@@ -1202,8 +1232,8 @@ var gameModule = (function() {
         this.range = 0;
         this.cc = 0;
         this.cd = 0;
-        this.chain = 1;
-        this.split = 1;
+        this.chain = 0;
+        this.split = 0;
     };
     function Tower() {
         this.wave = 0;
