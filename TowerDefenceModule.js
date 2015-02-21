@@ -730,6 +730,7 @@ var gameModule = (function() {
                 this.player.misses += 1;
                 playerController.showStat("misses");
             }
+            oGame.showText("damage", this.player.health);
             oGame.showGlobe("health");
             delete enemy["pattern"];
             var eEnemy = document.getElementById('enemy' + enemy.id);
@@ -815,6 +816,7 @@ var gameModule = (function() {
             }
             this.player.mana += enemy.mana;
             oGame.showGlobe("mana");
+            oGame.showText("mana", this.player.mana);
             if (oGame.board.selected !== -1 && this.player.mana >= 100 && oGame.radial === "open") {
                 hexController.radialClear();
                 hexController.radialControl(oGame.board.hexes[oGame.board.selected]);
@@ -834,6 +836,62 @@ var gameModule = (function() {
             enemy.element.remove();
             clearInterval(enemy.interval);
         }
+    };
+    Game.prototype.showText = function(text, id) {
+        var nWidth = 60;
+        var nHeight = 20;
+        var nOffset = 50;
+        switch (text) {
+            case "levelup":
+                var nMs = 1200;
+                var nScalar = 0.24;
+            break;
+            case "damage":
+                var nMs = 900;
+                var nScalar = 0.12;
+            break;
+            case "mana":
+                var nMs = 600;
+                var nScalar = 0.08;
+            break;
+        }
+        
+        var svgLevel = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        svgLevel.setAttribute("x", -nWidth / 2);
+        svgLevel.setAttribute("y", -nOffset);
+        svgLevel.setAttribute("width", nWidth);
+        svgLevel.setAttribute("height", nHeight);
+        svgLevel.setAttribute("fill", 'url(#pattern-' + text + '-' + id + ')');
+        
+        var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        svgPattern.setAttribute("id", 'pattern-' + text + '-' + id);
+        svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
+        svgPattern.setAttribute("x", -nWidth / 2);
+        svgPattern.setAttribute("y", -nHeight / 2);
+        svgPattern.setAttribute("width", nWidth);
+        svgPattern.setAttribute("height", nHeight);
+        
+        var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        svgImage.setAttribute("width", nWidth);
+        svgImage.setAttribute("height", nHeight);
+        svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/text-' + text + '.png');
+  
+        svgPattern.appendChild(svgImage);
+        this.eSvg.appendChild(svgLevel);
+        this.eDefs.appendChild(svgPattern);
+        
+        var nY = 1;
+        var fInterval = setInterval(function() {
+            nY += nScalar;
+            svgLevel.setAttribute("transform", "scale( " + nY + " )");
+        }, 20);
+        
+        var me = this;
+        setTimeout(function() {
+            clearInterval(fInterval);
+            me.eSvg.removeChild(svgLevel);
+            me.eDefs.removeChild(svgPattern);
+        }, nMs);
     };
 
     function Board(canvas, center, radius, side) {
@@ -1202,6 +1260,7 @@ var gameModule = (function() {
     };
     Player.prototype.levelUp = function() {
         this.level += 1;
+        oGame.showText("levelup", this.level);
         this.dam += 1;
         this.skillPoints += 1;
         this.health = this.maxHealth;
