@@ -185,6 +185,7 @@ var gameModule = (function() {
         skillController.showAllSkills();
         hexController.init('hex');
         oGame.createRange();
+        oGame.createExperience();
         oGame.createGlobe("health");
         oGame.createGlobe("mana");
 
@@ -192,12 +193,14 @@ var gameModule = (function() {
         for (var i = 0; i < hexes.length; i++) {
             hexes[i].addEventListener("click", function() {
                 oGame.board.selected = this.id;
-                if (parseInt(this.id) !== oGame.board.tower) {
-                    hexController.radialClear();
-                    hexController.radialControl(oGame.board.hexes[this.id]);
-                }
-                else {
-                    hexController.radialClear();
+                if (!oGame.player.attacking) {
+                    if (parseInt(this.id) !== oGame.board.tower) {
+                        hexController.clearRadial();
+                        hexController.createRadial(oGame.board.hexes[this.id]);
+                    }
+                    else {
+                        hexController.clearRadial();
+                    }
                 }
             });
         }
@@ -209,15 +212,18 @@ var gameModule = (function() {
         eWave.appendChild(sWave);
         eControl.appendChild(eWave);
         eWave.addEventListener("click", function() {
-            oGame.waveCreate();
-            oGame.waveStart();
-            oGame.playerStartAttacking();
+            hexController.clearRadial();
+            if (!oGame.player.attacking) {
+                oGame.waveCreate();
+                oGame.waveStart();
+                oGame.playerStartAttacking();
+            }
         });
         
         document.onkeydown = function(event) {
             event = event || window.event;
             if (event.keyCode === 27) {
-                hexController.radialClear();
+                hexController.clearRadial();
             }
         };
     };
@@ -226,21 +232,21 @@ var gameModule = (function() {
         var nHexId = this.getAttribute("hex");
 
         oGame.runeBuy(nId, oGame.board.hexes[nHexId]);
-        hexController.radialClear();
-        hexController.radialControl(oGame.board.hexes[nHexId]);
+        hexController.clearRadial();
+        hexController.createRadial(oGame.board.hexes[nHexId]);
     };
     var sellRune = function() {
         var nHexId = this.getAttribute("hex");
         
         oGame.runeSell(oGame.board.hexes[nHexId]);
-        hexController.radialClear();
+        hexController.clearRadial();
     };
     var upgradeRune = function() {
         var nHexId = this.getAttribute("hex");
         
         oGame.runeUpgrade(oGame.board.hexes[nHexId]);
-        hexController.radialClear();
-        hexController.radialControl(oGame.board.hexes[nHexId]);
+        hexController.clearRadial();
+        hexController.createRadial(oGame.board.hexes[nHexId]);
     };
     var spendPoint = function(stat) {
         if (oGame.player.skillPoints > 0) {
@@ -248,9 +254,9 @@ var gameModule = (function() {
             oGame.player.skillPoints -= 1;
             playerController.showStat("skillPoints");
             skillController.showSkill(stat);
-            if (oGame.board.selected !== -1 && oGame.radial === "open") {
-                hexController.radialClear();
-                hexController.radialControl(oGame.board.hexes[oGame.board.selected]);
+            if (oGame.board.selected !== -1 && oGame.player.mana >= 100 && oGame.radial === "open" && !oGame.player.attacking) {
+                hexController.clearRadial();
+                hexController.createRadial(oGame.board.hexes[oGame.board.selected]);
             }
         }
     };
@@ -317,7 +323,7 @@ var gameModule = (function() {
         var sStat = document.createTextNode(oGame[this.name][stat]);
         eStat.appendChild(sStat);
     };
-    Controller.prototype.radialControl = function(hex) {
+    Controller.prototype.createRadial = function(hex) {
         var i = 0;
         var sSetting = "hasRune";
         var me = this;
@@ -369,7 +375,7 @@ var gameModule = (function() {
                 var sEvent = "yes";
                 switch (rune) {
                     case "exit":
-                        svgButton.addEventListener("click", me.radialClear);
+                        svgButton.addEventListener("click", me.clearRadial);
                     break;
                     case "sell":
                         svgButton.addEventListener("click", sellRune);
@@ -419,7 +425,7 @@ var gameModule = (function() {
             }
         }
     };
-    Controller.prototype.radialClear = function() {
+    Controller.prototype.clearRadial = function() {
         oGame.radial = "closed";
         var me = this;
         for (var i = 0; i < 11; i++) {
@@ -433,7 +439,7 @@ var gameModule = (function() {
                 eButton.removeEventListener("click", buyRune);
                 eButton.removeEventListener("click", sellRune);
                 eButton.removeEventListener("click", upgradeRune);
-                eButton.removeEventListener("click", me.radialClear);
+                eButton.removeEventListener("click", me.clearRadial);
                 oGame.eSvg.removeChild(eButton);
             }
         }
@@ -586,6 +592,43 @@ var gameModule = (function() {
 
         svgGlobe.setAttribute("fill", "url(#pattern-globe-" + stat + ")");
     };
+    Game.prototype.createExperience = function() {
+        var svgExperience = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        svgExperience.setAttribute("x", -275);
+        svgExperience.setAttribute("y", 400);
+        svgExperience.setAttribute("width", 550);
+        svgExperience.setAttribute("height", 10);
+        svgExperience.setAttribute('stroke', '#444');
+        svgExperience.setAttribute('stroke-width', '1px');
+        svgExperience.setAttribute("fill", 'url(#pattern-experience)');
+
+        var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        svgPattern.setAttribute("id", 'pattern-experience');
+        svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
+        svgPattern.setAttribute("x", -300);
+        svgPattern.setAttribute("y", 0);
+        svgPattern.setAttribute("width", 600);
+        svgPattern.setAttribute("height", 10);
+
+        var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        svgImage.setAttribute("width", 600);
+        svgImage.setAttribute("height", 10);
+        svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/experience-full.png');
+        
+        var svgEmpty = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        svgEmpty.setAttribute("x", 15);
+        svgEmpty.setAttribute("y", 0);
+        svgEmpty.setAttribute("width", 600);
+        svgEmpty.setAttribute("height", 10);
+        svgEmpty.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/experience-empty.png');
+        svgEmpty.setAttribute("id", "experience-empty");
+        
+        svgPattern.appendChild(svgImage);
+        svgPattern.appendChild(svgEmpty);
+        this.eSvg.appendChild(svgExperience);
+        this.eDefs.appendChild(svgPattern);
+        
+    };
     Game.prototype.showRange = function() {
         var svgRange = document.getElementById('towerRange');
         svgRange.setAttribute('r', this.tower.range);
@@ -608,234 +651,10 @@ var gameModule = (function() {
         var nOffset = getHeight(nRadius, nAmount);
         svgEmpty.setAttribute("y", -(21 + nOffset));
     };
-    Game.prototype.runeBuy = function(id, hex) {
-        hex.rune = new Rune(id);
-        this.player.mana -= oSettings.runeCosts[id];
-        playerController.showStat("mana");
-        oGame.showGlobe("mana");
-        if (this.board.hexCheckConnected(hex)) {
-            hex.rune.tier = 1;
-            hex.towerConnected = true;
-        }
-        this.board.hexCheckDisconnected(hex);
-        this.board.runeRemove(this.eDefs);
-        this.board.hexConnect();
-        this.board.runeCreate();
-        this.board.runeDraw(this.eDefs);
-        this.board.setValues();
-        this.setValues();
-        this.showRange();
-        towerController.showAllStats();
-    };
-    Game.prototype.runeSell = function(hex) {
-        this.player.mana += oSettings.runeCosts[hex.rune.id] * hex.rune.tier;
-        oGame.showGlobe("mana");
-        playerController.showStat("mana");
-        delete hex.rune;
-        hex.element.setAttribute("fill", "black");
-        for (var i = 0; i < this.board.hexes.length; i++) {
-            if (i !== this.board.tower) {
-                this.board.hexes[i].towerConnected = false;
-            }
-            this.board.hexes[i].connections = [];
-            this.board.hexes[i].directions = [];
-        }
-        for (var i = 0; i < this.board.hexes.length; i++) {
-            if (this.board.hexes[i].rune && i !== this.board.tower) {
-                if (this.board.hexCheckConnected(this.board.hexes[i])) {
-                    this.board.hexes[i].towerConnected = true;
-                }
-                this.board.hexCheckDisconnected(this.board.hexes[i]);
-            }
-        }
-        this.board.runeRemove(this.eDefs);
-        this.board.hexConnect();
-        this.board.runeCreate();
-        this.board.runeDraw(this.eDefs);
-        this.board.setValues();
-        this.setValues();
-        this.showRange();
-        towerController.showAllStats();
-    };
-    Game.prototype.runeUpgrade = function(hex) {
-        hex.rune.tier += 1;
-        this.player.mana -= oSettings.runeCosts[hex.rune.id];
-        oGame.showGlobe("mana");
-        playerController.showStat("mana");
-        this.board.runeRemove(this.eDefs);
-        this.board.hexConnect();
-        this.board.runeCreate();
-        this.board.runeDraw(this.eDefs);
-        this.board.setValues();
-        this.setValues();
-        this.showRange();
-        towerController.showAllStats();
-    };
-    Game.prototype.waveCreate = function() {
-        this.board.enemies = [];
-        this.tower.wave += 1;
-        this.wave = new Wave(this.tower.wave);
-        if (this.tower.wave > 10) {
-            this.tower.accuracy = this.player.accuracy;
-            this.board.setValues();
-            this.setValues();
-        }
-        towerController.showStat("wave");
-        towerController.showStat("accuracy");
-        towerController.showStat("dam");
-        towerController.showStat("dps");
-        for (var i = 0; i < this.wave.number; i++) {
-            var randomAngle = Math.random() * 2 * Math.PI;
-            var sine = Math.sin(randomAngle);
-            var cosine = Math.cos(randomAngle);
-            var punt = new Punt(sine * (650), cosine * (650));
-            var enemy = new Enemy(i, this.board.center, punt, this.wave);
-            this.board.enemies.push(enemy);
-        }
-    };
-    Game.prototype.waveStart = function() {
-        var center = this.board.center;
-        for (var i = 0; i < this.board.enemies.length; i ++) {
-            this.eSvg.appendChild(this.board.enemies[i].element());
-            this.eDefs.appendChild(this.board.enemies[i].pattern());
-            this.enemyStartMoving(this.board.enemies[i], center);
-        }
-    };
-    Game.prototype.enemyStartMoving = function(enemy, to, distance) {
-        var me = this;
-        enemy.interval = setInterval(function() {
-            me.enemyMove(enemy, to);
-        }, 35);
-    };
-    Game.prototype.enemyMove = function (enemy, to) {
-        var x = enemy.center.x + enemy.cosine * enemy.speed;
-        var y = enemy.center.y + enemy.sine * enemy.speed;
-        var from = new Punt(x, y);
-        enemy.pattern.setAttribute("x", x);
-        enemy.pattern.setAttribute("y", y);
-        enemy.element.setAttribute('cx', x);
-        enemy.element.setAttribute('cy', y);
-        enemy.element.setAttribute('x', x);
-        enemy.element.setAttribute('y', y);
-        enemy.center = from;
-        enemy.animate += 1;
-        if (enemy.animate % Math.floor(enemy.mod * 5) === 0) {
-            enemy.step += 1;
-            enemy.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + enemy.type + '-' + enemy.direction + '-' + enemy.step % 6 + '.svg');
-        }
-        if (getDistance(enemy.center, to) < 50) {
-            this.player.health -= enemy.damage;
-            playerController.showStat("health");
-            if (this.tower.wave > 10) {
-                this.player.misses += 1;
-                playerController.showStat("misses");
-            }
-            oGame.showText("damage", this.player.health);
-            oGame.showGlobe("health");
-            delete enemy["pattern"];
-            var eEnemy = document.getElementById('enemy' + enemy.id);
-            if (eEnemy) { this.eDefs.removeChild(eEnemy); }
-            this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
-            enemy.element.remove();
-            clearInterval(enemy.interval);
-        }
-
-    };
-    Game.prototype.enemyClosest = function(id, from, range) {
-        var nClosest = 1000;
-        var idClosest = -1;
-        for (var i = 0; i < this.board.enemies.length; i++) {
-            if (i !== id) {
-                var nEnemyDistance = getDistance(from, this.board.enemies[i].center);
-                if (nEnemyDistance < range && nEnemyDistance < nClosest) {
-                    nClosest = nEnemyDistance;
-                    idClosest = i;
-                }
-            }
-
-        }
-        return idClosest;
-    };
-    Game.prototype.enemyFurthest = function(id, from, range) {
-        var nFurthest = 0;
-        var idFurthest = -1;
-        for (var i = 0; i < this.board.enemies.length; i++) {
-            if (i !== id) {
-                var nEnemyDistance = getDistance(from, this.board.enemies[i].center);
-                if (nEnemyDistance < range && nEnemyDistance > nFurthest) {
-                    nFurthest = nEnemyDistance;
-                    idFurthest = i;
-                }
-            }
-        }
-        return idFurthest;
-    };
-    Game.prototype.playerStartAttacking = function() {
-        var me = this;
-        var color = "red";
-        this.player.interval = setInterval(function() {
-            var idClosest = me.enemyClosest(-1, me.board.center, me.tower.range);
-            if (idClosest >= 0) {
-                var oClosestPunt = new Punt(me.board.enemies[idClosest].center.x, me.board.enemies[idClosest].center.y);
-                me.board.showAttack(me.board.center, oClosestPunt, color);
-                me.playerAttack(me.board.enemies[idClosest]);
-                if (me.tower.chainEffect === true) {
-                    var idClosestChained = me.enemyFurthest(idClosest, oClosestPunt, me.tower.range / 2);
-                    if (idClosestChained >= 0) {
-                        me.board.showAttack(oClosestPunt, me.board.enemies[idClosestChained].center, color);
-                        me.playerAttack(me.board.enemies[idClosestChained]);
-                    }
-                }
-            }
-            if (me.tower.splitEffect === true) {
-                var idFurthest = me.enemyFurthest(-1, me.board.center, me.tower.range);
-                if (idFurthest >= 0) {
-                    var oFurthestPunt = new Punt(me.board.enemies[idFurthest].center.x, me.board.enemies[idFurthest].center.y);
-                    me.board.showAttack(me.board.center, oFurthestPunt, color);
-                    me.playerAttack(me.board.enemies[idFurthest]);
-                    if (me.tower.chainEffect === true) {
-                        var idFurthestChained = me.enemyClosest(idFurthest, oFurthestPunt, me.tower.range / 2);
-                        if (idFurthestChained >= 0) {
-                            me.board.showAttack(oFurthestPunt, me.board.enemies[idFurthestChained].center, color);
-                            me.playerAttack(me.board.enemies[idFurthestChained]);
-                        }
-                    }
-                }
-            }
-            if (me.board.enemies.length === 0) {
-                clearInterval(me.player.interval);
-            }
-        }, this.tower.ms);
-    };
-    Game.prototype.playerAttack = function(enemy) {
-        enemy.health -= this.tower.dam;
-        if (enemy.health <= 0) {
-            if (this.tower.wave > 10) {
-                this.player.kills += 1;
-                this.player.accuracy = this.player.kills / this.player.total;
-            }
-            this.player.mana += enemy.mana;
-            oGame.showGlobe("mana");
-            oGame.showText("mana", this.player.mana);
-            if (oGame.board.selected !== -1 && this.player.mana >= 100 && oGame.radial === "open") {
-                hexController.radialClear();
-                hexController.radialControl(oGame.board.hexes[oGame.board.selected]);
-            }
-            this.player.experience += enemy.experience;
-            if (this.player.experience >= this.player.maxExperience) {
-                this.player.levelUp();
-            };
-            playerController.showStat("kills");
-            playerController.showStat("accuracy");
-            playerController.showStat("mana");
-            playerController.showStat("experience");
-            this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
-            delete enemy["pattern"];
-            var eEnemy = document.getElementById('enemy' + enemy.id);
-            if (eEnemy) { this.eDefs.removeChild(eEnemy); }
-            enemy.element.remove();
-            clearInterval(enemy.interval);
-        }
+    Game.prototype.showExperience = function() {
+        var svgExperience = document.getElementById('experience-empty');
+        var nFraction = this.player.experience / this.player.maxExperience * 550;
+        svgExperience.setAttribute('x', 15 + nFraction);
     };
     Game.prototype.showText = function(text, id) {
         var nWidth = 60;
@@ -893,7 +712,249 @@ var gameModule = (function() {
             me.eDefs.removeChild(svgPattern);
         }, nMs);
     };
+    Game.prototype.runeBuy = function(id, hex) {
+        hex.rune = new Rune(id);
+        this.player.mana -= oSettings.runeCosts[id];
+        if (this.board.hexCheckConnected(hex)) {
+            hex.rune.tier = 1;
+            hex.towerConnected = true;
+        }
+        this.board.hexCheckDisconnected(hex);
+        this.board.runeRemove(this.eDefs);
+        this.board.hexConnect();
+        this.board.runeCreate();
+        this.board.runeDraw(this.eDefs);
+        this.board.setValues();
+        this.setValues();
+        this.showRange();
+        this.showGlobe("mana");
+        towerController.showAllStats();
+        playerController.showStat("mana");
+    };
+    Game.prototype.runeSell = function(hex) {
+        this.player.mana += oSettings.runeCosts[hex.rune.id] * hex.rune.tier;
+        delete hex.rune;
+        hex.element.setAttribute("fill", "black");
+        for (var i = 0; i < this.board.hexes.length; i++) {
+            if (i !== this.board.tower) {
+                this.board.hexes[i].towerConnected = false;
+            }
+            this.board.hexes[i].connections = [];
+            this.board.hexes[i].directions = [];
+        }
+        for (var i = 0; i < this.board.hexes.length; i++) {
+            if (this.board.hexes[i].rune && i !== this.board.tower) {
+                if (this.board.hexCheckConnected(this.board.hexes[i])) {
+                    this.board.hexes[i].towerConnected = true;
+                }
+                this.board.hexCheckDisconnected(this.board.hexes[i]);
+            }
+        }
+        this.board.runeRemove(this.eDefs);
+        this.board.hexConnect();
+        this.board.runeCreate();
+        this.board.runeDraw(this.eDefs);
+        this.board.setValues();
+        this.setValues();
+        this.showRange();
+        this.showGlobe("mana");
+        playerController.showStat("mana");
+        towerController.showAllStats();
+    };
+    Game.prototype.runeUpgrade = function(hex) {
+        hex.rune.tier += 1;
+        this.player.mana -= oSettings.runeCosts[hex.rune.id];
+        this.board.runeRemove(this.eDefs);
+        this.board.hexConnect();
+        this.board.runeCreate();
+        this.board.runeDraw(this.eDefs);
+        this.board.setValues();
+        this.setValues();
+        this.showRange();
+        this.showGlobe("mana");
+        playerController.showStat("mana");
+        towerController.showAllStats();
+    };
+    Game.prototype.waveCreate = function() {
+        this.board.enemies = [];
+        this.tower.wave += 1;
+        this.wave = new Wave(this.tower.wave);
+        if (this.tower.wave > 10) {
+            this.tower.accuracy = this.player.accuracy;
+            this.board.setValues();
+            this.setValues();
+        }
+        for (var i = 0; i < this.wave.number; i++) {
+            var randomAngle = Math.random() * 2 * Math.PI;
+            var sine = Math.sin(randomAngle);
+            var cosine = Math.cos(randomAngle);
+            var punt = new Punt(sine * (650), cosine * (650));
+            var enemy = new Enemy(i, this.board.center, punt, this.wave);
+            this.board.enemies.push(enemy);
+        }
+        towerController.showStat("wave");
+        towerController.showStat("accuracy");
+        towerController.showStat("dam");
+        towerController.showStat("dps");
+    };
+    Game.prototype.waveStart = function() {
+        var center = this.board.center;
+        for (var i = 0; i < this.board.enemies.length; i ++) {
+            this.eSvg.appendChild(this.board.enemies[i].element());
+            this.eDefs.appendChild(this.board.enemies[i].pattern());
+            this.enemyStartMoving(this.board.enemies[i], center);
+        }
+    };
+    Game.prototype.enemyStartMoving = function(enemy, to, distance) {
+        var me = this;
+        enemy.interval = setInterval(function() {
+            me.enemyMove(enemy, to);
+        }, 35);
+    };
+    Game.prototype.enemyMove = function (enemy, to) {
+        var x = enemy.center.x + enemy.cosine * enemy.speed;
+        var y = enemy.center.y + enemy.sine * enemy.speed;
+        var from = new Punt(x, y);
+        enemy.pattern.setAttribute("x", x);
+        enemy.pattern.setAttribute("y", y);
+        enemy.element.setAttribute('cx', x);
+        enemy.element.setAttribute('cy', y);
+        enemy.element.setAttribute('x', x);
+        enemy.element.setAttribute('y', y);
+        enemy.center = from;
+        enemy.animate += 1;
+        if (enemy.animate % Math.floor(enemy.mod * 5) === 0) {
+            enemy.step += 1;
+            enemy.image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/invader-' + enemy.type + '-' + enemy.direction + '-' + enemy.step % 6 + '.svg');
+        }
+        if (getDistance(enemy.center, to) < 50) {
+            this.player.health -= enemy.damage;
+            playerController.showStat("health");
+            if (this.tower.wave > 10) {
+                this.player.misses += 1;
+                playerController.showStat("misses");
+            }
 
+            delete enemy["pattern"];
+            var eEnemy = document.getElementById('enemy' + enemy.id);
+            if (eEnemy) { this.eDefs.removeChild(eEnemy); }
+            this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
+            enemy.element.remove();
+            this.showText("damage", this.player.health);
+            this.showGlobe("health");
+            clearInterval(enemy.interval);
+        }
+
+    };
+    Game.prototype.enemyClosest = function(id, from, range) {
+        var nClosest = 1000;
+        var idClosest = -1;
+        for (var i = 0; i < this.board.enemies.length; i++) {
+            if (i !== id) {
+                var nEnemyDistance = getDistance(from, this.board.enemies[i].center);
+                if (nEnemyDistance < range && nEnemyDistance < nClosest) {
+                    nClosest = nEnemyDistance;
+                    idClosest = i;
+                }
+            }
+
+        }
+        return idClosest;
+    };
+    Game.prototype.enemyFurthest = function(id, from, range) {
+        var nFurthest = 0;
+        var idFurthest = -1;
+        for (var i = 0; i < this.board.enemies.length; i++) {
+            if (i !== id) {
+                var nEnemyDistance = getDistance(from, this.board.enemies[i].center);
+                if (nEnemyDistance < range && nEnemyDistance > nFurthest) {
+                    nFurthest = nEnemyDistance;
+                    idFurthest = i;
+                }
+            }
+        }
+        return idFurthest;
+    };
+    Game.prototype.playerStartAttacking = function() {
+        this.player.attacking = true;
+        var color = "red";
+        var me = this;
+        this.player.interval = setInterval(function() {
+            var idClosest = me.enemyClosest(-1, me.board.center, me.tower.range);
+            if (idClosest >= 0) {
+                var oClosestPunt = new Punt(me.board.enemies[idClosest].center.x, me.board.enemies[idClosest].center.y);
+                me.showAttack(me.board.center, oClosestPunt, color);
+                me.playerAttack(me.board.enemies[idClosest]);
+                if (me.tower.chainEffect === true) {
+                    var idClosestChained = me.enemyFurthest(idClosest, oClosestPunt, me.tower.range / 2);
+                    if (idClosestChained >= 0) {
+                        me.showAttack(oClosestPunt, me.board.enemies[idClosestChained].center, color);
+                        me.playerAttack(me.board.enemies[idClosestChained]);
+                    }
+                }
+            }
+            if (me.tower.splitEffect === true) {
+                var idFurthest = me.enemyFurthest(-1, me.board.center, me.tower.range);
+                if (idFurthest >= 0) {
+                    var oFurthestPunt = new Punt(me.board.enemies[idFurthest].center.x, me.board.enemies[idFurthest].center.y);
+                    me.showAttack(me.board.center, oFurthestPunt, color);
+                    me.playerAttack(me.board.enemies[idFurthest]);
+                    if (me.tower.chainEffect === true) {
+                        var idFurthestChained = me.enemyClosest(idFurthest, oFurthestPunt, me.tower.range / 2);
+                        if (idFurthestChained >= 0) {
+                            me.showAttack(oFurthestPunt, me.board.enemies[idFurthestChained].center, color);
+                            me.playerAttack(me.board.enemies[idFurthestChained]);
+                        }
+                    }
+                }
+            }
+            if (me.board.enemies.length === 0) {
+                me.player.attacking = false;
+                clearInterval(me.player.interval);
+            }
+        }, this.tower.ms);
+    };
+    Game.prototype.playerAttack = function(enemy) {
+        enemy.health -= this.tower.dam;
+        if (enemy.health <= 0) {
+            if (this.tower.wave > 10) {
+                this.player.kills += 1;
+                this.player.accuracy = this.player.kills / this.player.total;
+            }
+            this.player.mana += enemy.mana;
+            this.player.experience += enemy.experience;
+            if (this.player.experience >= this.player.maxExperience) {
+                this.player.levelUp();
+            };
+            this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
+            delete enemy["pattern"];
+            var eEnemy = document.getElementById('enemy' + enemy.id);
+            if (eEnemy) { this.eDefs.removeChild(eEnemy); }
+            enemy.element.remove();
+            oGame.showExperience();
+            oGame.showGlobe("mana");
+            oGame.showText("mana", this.player.mana);
+            playerController.showStat("kills");
+            playerController.showStat("accuracy");
+            playerController.showStat("mana");
+            playerController.showStat("experience");
+            clearInterval(enemy.interval);
+        }
+    };
+    Game.prototype.showAttack = function(source, target, color) {
+        var attack = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        attack.setAttribute('x1', source.x);
+        attack.setAttribute('y1', source.y);
+        attack.setAttribute('x2', target.x);
+        attack.setAttribute('y2', target.y);
+        attack.setAttribute('stroke', color);
+        attack.setAttribute('stroke-width', '2px');
+        this.eSvg.appendChild(attack);
+        setTimeout(function() {
+            attack.remove();
+        }, 50);
+    };
+    
     function Board(canvas, center, radius, side) {
         this.canvas = canvas;
         this.center = center;
@@ -1100,19 +1161,6 @@ var gameModule = (function() {
             if (eThisHex) { defs.removeChild(eThisHex); }
         }
     };
-    Board.prototype.showAttack = function(source, target, color) {
-        var attack = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        attack.setAttribute('x1', source.x);
-        attack.setAttribute('y1', source.y);
-        attack.setAttribute('x2', target.x);
-        attack.setAttribute('y2', target.y);
-        attack.setAttribute('stroke', color);
-        attack.setAttribute('stroke-width', '2px');
-        this.canvas.appendChild(attack);
-        setTimeout(function() {
-            attack.remove();
-        }, 50);
-    };
 
     function Hex(id, xid, yid, center, side){
         this.modifier = 0;
@@ -1241,6 +1289,7 @@ var gameModule = (function() {
 
     function Player() {
         this.level = 1;
+        this.attacking = false;
         this.experience = 0;
         this.kills = 0;
         this.misses = 0;
@@ -1260,7 +1309,6 @@ var gameModule = (function() {
     };
     Player.prototype.levelUp = function() {
         this.level += 1;
-        oGame.showText("levelup", this.level);
         this.dam += 1;
         this.skillPoints += 1;
         this.health = this.maxHealth;
@@ -1270,7 +1318,9 @@ var gameModule = (function() {
         oGame.setValues();
         towerController.showAllStats();
         playerController.showAllStats();
+        oGame.showExperience();
         oGame.showGlobe("health");
+        oGame.showText("levelup", this.level);
     };
 
     function Wave(number) {
