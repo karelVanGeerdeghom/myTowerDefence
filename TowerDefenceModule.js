@@ -126,7 +126,7 @@ var gameModule = (function() {
         "side": 28,
         "health": 100,
         "mana": 200,
-        "range": 150,
+        "range": 200,
         "dam": 10,
         "as": 5,
         "cc": 5,
@@ -136,7 +136,8 @@ var gameModule = (function() {
         "runeStats": [0, 5, 5, 8, 4, 40],
         "enemydam": 5,
         "enemymana": 5,
-        "enemyexperience": 4
+        "enemyexperience": 4,
+        "enemyspeed": 5
     };
     var towerController = new Controller('tower');
     var playerController = new Controller('player');
@@ -184,6 +185,9 @@ var gameModule = (function() {
         skillController.createAllSkills();
         skillController.showAllSkills();
         hexController.init('hex');
+        oGame.createRuneFilters();
+        oGame.startRuneFilters();
+        oGame.createAttackPattern();
         oGame.createRange();
         oGame.createExperience();
         oGame.createGlobe("health");
@@ -217,6 +221,7 @@ var gameModule = (function() {
                 oGame.waveCreate();
                 oGame.waveStart();
                 oGame.playerStartAttacking();
+                oGame.stopRuneFilters();
             }
         });
         
@@ -501,7 +506,7 @@ var gameModule = (function() {
         var dam = this.player.dam * ((100 + this.board.dam) / 100);
         var cc = this.player.cc + this.board.cc;
         var cd = this.player.cd + this.board.cd;
-        var totalDamage = dam * (((cc / 100) * ((100 + cd) / 100)) + ((100 - cc) / 100)) * this.tower.accuracy;
+        var totalDamage = dam * (((cc / 100) * ((100 + cd) / 100)) + ((100 - cc) / 100));
         this.tower.dam = Math.round(totalDamage * 100) / 100;
         this.tower.as =  Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100;
         this.tower.ms = Math.round(1000 / this.tower.as);
@@ -628,6 +633,112 @@ var gameModule = (function() {
         this.eSvg.appendChild(svgExperience);
         this.eDefs.appendChild(svgPattern);
         
+    };
+    Game.prototype.createRuneFilters = function() {
+        for (var i = 0; i < 5; i++) {
+            var svgFilter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+            svgFilter.setAttribute("id", "filter-" + i);
+            svgFilter.setAttribute("x", "0");
+            svgFilter.setAttribute("y", "0");
+
+            var feComponentTransfer = document.createElementNS("http://www.w3.org/2000/svg", "feComponentTransfer");
+
+            var feFuncR = document.createElementNS("http://www.w3.org/2000/svg", "feFuncR");
+            feFuncR.setAttribute("id", "filter-feFuncR" + i);
+            feFuncR.setAttribute("type", "linear");
+            feFuncR.setAttribute("slope", "1");
+
+            var feFuncG = document.createElementNS("http://www.w3.org/2000/svg", "feFuncG");
+            feFuncG.setAttribute("id", "filter-feFuncG" + i);
+            feFuncG.setAttribute("type", "linear");
+            feFuncG.setAttribute("slope", "1");
+
+            var feFuncB  = document.createElementNS("http://www.w3.org/2000/svg", "feFuncB");
+            feFuncB.setAttribute("id", "filter-feFuncB" + i);
+            feFuncB .setAttribute("type", "linear");
+            feFuncB .setAttribute("slope", "1");
+
+            feComponentTransfer.appendChild(feFuncR);
+            feComponentTransfer.appendChild(feFuncG);
+            feComponentTransfer.appendChild(feFuncB);
+
+            svgFilter.appendChild(feComponentTransfer);
+
+            this.eDefs.appendChild(svgFilter);
+        }
+    };
+    Game.prototype.startRuneFilters = function() {
+        var feFuncR0 = document.getElementById("filter-feFuncR0");
+        var feFuncG0 = document.getElementById("filter-feFuncG0");
+        var feFuncB0 = document.getElementById("filter-feFuncB0");
+        var feFuncR1 = document.getElementById("filter-feFuncR1");
+        var feFuncG1 = document.getElementById("filter-feFuncG1");
+        var feFuncB1 = document.getElementById("filter-feFuncB1");
+        var feFuncR2 = document.getElementById("filter-feFuncR2");
+        var feFuncG2 = document.getElementById("filter-feFuncG2");
+        var feFuncB2 = document.getElementById("filter-feFuncB2");
+        var feFuncR3 = document.getElementById("filter-feFuncR3");
+        var feFuncG3 = document.getElementById("filter-feFuncG3");
+        var feFuncB3 = document.getElementById("filter-feFuncB3");
+        var feFuncR4 = document.getElementById("filter-feFuncR4");
+        var feFuncG4 = document.getElementById("filter-feFuncG4");
+        var feFuncB4 = document.getElementById("filter-feFuncB4");
+        
+        var nI0 = 1;
+        var nI1 = 1;
+        var nI2 = 1;
+        var nI3 = 1;
+        var nI4 = 1;
+        var nSign0 = -1;
+        var nSign1 = -1;
+        var nSign2 = -1;
+        var nSign3 = -1;
+        var nSign4 = -1;
+        this.interval = setInterval(function() {
+            if (nI0 >= 1.5) { nSign0 = -1; }
+            if (nI0 <= 0.5) { nSign0 = 1; }
+            if (nI1 >= 1.5) { nSign1 = -1; }
+            if (nI1 <= 0.5) { nSign1 = 1; }
+            if (nI2 >= 1.5) { nSign2 = -1; }
+            if (nI2 <= 0.5) { nSign2 = 1; }
+            if (nI3 >= 1.5) { nSign3 = -1; }
+            if (nI3 <= 0.5) { nSign3 = 1; }
+            if (nI4 >= 1.5) { nSign4 = -1; }
+            if (nI4 <= 0.5) { nSign4 = 1; }
+
+            nI0 += nSign0  * (0.08);
+            nI0 = Math.round(nI0 * 100) / 100;
+            feFuncR0.setAttribute("slope", parseFloat(nI0));
+            feFuncG0.setAttribute("slope", parseFloat(nI0));
+            feFuncB0.setAttribute("slope", parseFloat(nI0));
+            
+            nI1 += nSign1  * (0.10);
+            nI1 = Math.round(nI1 * 100) / 100;
+            feFuncR1.setAttribute("slope", parseFloat(nI1));
+            feFuncG1.setAttribute("slope", parseFloat(nI1));
+            feFuncB1.setAttribute("slope", parseFloat(nI1));
+            
+            nI2 += nSign2  * (0.12);
+            nI2 = Math.round(nI2 * 100) / 100;
+            feFuncR2.setAttribute("slope", parseFloat(nI2));
+            feFuncG2.setAttribute("slope", parseFloat(nI2));
+            feFuncB2.setAttribute("slope", parseFloat(nI2));
+            
+            nI3 += nSign3  * (0.14);
+            nI3 = Math.round(nI3 * 100) / 100;
+            feFuncR3.setAttribute("slope", parseFloat(nI3));
+            feFuncG3.setAttribute("slope", parseFloat(nI3));
+            feFuncB3.setAttribute("slope", parseFloat(nI3));
+            
+            nI4 += nSign4  * (0.16);
+            nI4 = Math.round(nI4 * 100) / 100;
+            feFuncR4.setAttribute("slope", parseFloat(nI4));
+            feFuncG4.setAttribute("slope", parseFloat(nI4));
+            feFuncB4.setAttribute("slope", parseFloat(nI4));
+        }, 100); 
+    };
+    Game.prototype.stopRuneFilters = function() {
+        clearInterval(this.interval);
     };
     Game.prototype.showRange = function() {
         var svgRange = document.getElementById('towerRange');
@@ -883,7 +994,7 @@ var gameModule = (function() {
             var idClosest = me.enemyClosest(-1, me.board.center, me.tower.range);
             if (idClosest >= 0) {
                 var oClosestPunt = new Punt(me.board.enemies[idClosest].center.x, me.board.enemies[idClosest].center.y);
-                me.showAttack(me.board.center, oClosestPunt, color);
+                me.showAttack(oClosestPunt);
                 me.playerAttack(me.board.enemies[idClosest]);
                 if (me.tower.chainEffect === true) {
                     var idClosestChained = me.enemyFurthest(idClosest, oClosestPunt, me.tower.range / 2);
@@ -911,11 +1022,12 @@ var gameModule = (function() {
             if (me.board.enemies.length === 0) {
                 me.player.attacking = false;
                 clearInterval(me.player.interval);
+                me.startRuneFilters();
             }
         }, this.tower.ms);
     };
     Game.prototype.playerAttack = function(enemy) {
-        enemy.health -= this.tower.dam;
+        enemy.health -= this.tower.dam * this.tower.accuracy;
         if (enemy.health <= 0) {
             if (this.tower.wave > 10) {
                 this.player.kills += 1;
@@ -927,32 +1039,97 @@ var gameModule = (function() {
                 this.player.levelUp();
             };
             this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
-            delete enemy["pattern"];
-            var eEnemy = document.getElementById('enemy' + enemy.id);
-            if (eEnemy) { this.eDefs.removeChild(eEnemy); }
-            enemy.element.remove();
+            var me = this;
             oGame.showExperience();
             oGame.showGlobe("mana");
-            oGame.showText("mana", this.player.mana);
             playerController.showStat("kills");
             playerController.showStat("accuracy");
             playerController.showStat("mana");
             playerController.showStat("experience");
-            clearInterval(enemy.interval);
+            setTimeout(function() {
+                delete enemy["pattern"];
+                var eEnemy = document.getElementById('enemy' + enemy.id);
+                if (eEnemy) { me.eDefs.removeChild(eEnemy); }
+                clearInterval(enemy.interval);
+                enemy.element.remove();
+            }, 100);
         }
     };
-    Game.prototype.showAttack = function(source, target, color) {
-        var attack = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        attack.setAttribute('x1', source.x);
-        attack.setAttribute('y1', source.y);
-        attack.setAttribute('x2', target.x);
-        attack.setAttribute('y2', target.y);
-        attack.setAttribute('stroke', color);
-        attack.setAttribute('stroke-width', '2px');
-        this.eSvg.appendChild(attack);
+    Game.prototype.createAttackPattern = function() {
+        var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        svgPattern.setAttribute("id", "pattern-attack");
+        svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
+        svgPattern.setAttribute('y', -15);
+        svgPattern.setAttribute("width", 600);
+        svgPattern.setAttribute("height", 30);
+        
+        for (var i = 0; i < 1; i++) {
+            var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            svgImage.setAttribute("width", 600);
+            svgImage.setAttribute("height", 30);
+            svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/attack-1-' + i + '.png');
+            svgPattern.appendChild(svgImage);
+        }
+        
+        this.eDefs.appendChild(svgPattern);
+    };
+    Game.prototype.showAttack = function(target) {
+//        var attack = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+//        attack.setAttribute('x1', source.x);
+//        attack.setAttribute('y1', source.y);
+//        attack.setAttribute('x2', target.x);
+//        attack.setAttribute('y2', target.y);
+//        attack.setAttribute('stroke', color);
+//        attack.setAttribute('stroke-width', '2px');
+
+//        var nWidth = getDistance(this.board.center, enemy.center);
+//        var attack = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+//        attack.setAttribute('y', -15);
+//        attack.setAttribute('width', nWidth);
+//        attack.setAttribute('height', 30);
+//        attack.setAttribute('fill', "url(#pattern-attack)");
+//        attack.setAttribute('transform', 'rotate(' + enemy.angleAttack + ')');
+//        
+//        this.eSvg.appendChild(attack);
+//        setTimeout(function() {
+//            attack.remove();
+//        }, 50);
+
+//        var svgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+//        svgPath.setAttribute('d','M0,0 L' + target.x + ',' + target.y + '');
+//        svgPath.setAttribute('id', 'attack-path');
+        
+        var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        svgImage.setAttribute("x", -20);
+        svgImage.setAttribute("y", -20);
+        svgImage.setAttribute("width", 40);
+        svgImage.setAttribute("height", 40);
+        svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/ball.png');
+        
+      var svgAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
+        svgAnim.setAttribute('attributeName', 'transform');
+        svgAnim.setAttribute('begin', this.eSvg.getCurrentTime());
+        svgAnim.setAttribute('dur', '0.1s');
+        svgAnim.setAttribute('type', 'translate');
+        svgAnim.setAttribute('from', '0,0');
+        svgAnim.setAttribute('to', target.x + ',' + target.y);
+        svgAnim.setAttribute('repeatCount', 1);
+        svgAnim.setAttribute('id', this.eSvg.getCurrentTime());
+        
+        svgImage.appendChild(svgAnim);
+        this.eSvg.appendChild(svgImage);
+
+
+            
+            var me = this;
         setTimeout(function() {
-            attack.remove();
-        }, 50);
+            me.eSvg.removeChild(svgImage);
+        }, 100);
+        
+
+//        svgAnim.appendChild(mPath);
+
+//        this.eSvg.appendChild(svgPath);
     };
     
     function Board(canvas, center, radius, side) {
@@ -1204,11 +1381,13 @@ var gameModule = (function() {
 
         var tier = this.rune.tier;
         if (this.towerConnected === false) { tier = 0; }
+        var nBlink = Math.round(Math.random() * 4);
 
         var iRune = document.createElementNS('http://www.w3.org/2000/svg', 'image');
         iRune.setAttribute("width", this.side * 3.6);
         iRune.setAttribute("height", this.side * 3.6);
         iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + this.rune.name + tier + '.png');
+        iRune.setAttribute("filter","url(#filter-" + nBlink + ")");
 
         this.pattern.appendChild(iRune);
 
@@ -1244,11 +1423,12 @@ var gameModule = (function() {
         this.center = center;
         this.angleRadians = Math.atan2(to.y - this.center.y, to.x - this.center.x);
         this.angleDegrees = Math.atan2(to.y - this.center.y, to.x - this.center.x) * 180 / Math.PI;
+        this.angleAttack = Math.atan2(this.center.y - to.y, this.center.x - to.x) * 180 / Math.PI;
         this.sine = Math.sin(this.angleRadians);
         this.cosine = Math.cos(this.angleRadians);
         this.direction = Math.round(Math.random());
         this.type = Math.floor(Math.random() * 4);
-        this.size = 17 * this.mod;
+        this.size = 20 * this.mod;
         this.animate = 0;
         this.step = 0;
     };
@@ -1329,7 +1509,7 @@ var gameModule = (function() {
         this.factor = Math.round((Math.random() * 4) + 12);
         this.number = this.factor;
         this.health = this.parameter / this.factor;
-        this.speed = 5;
+        this.speed = oSettings.enemyspeed;
         if (this.id > 10) {
             oGame.player.total += this.number;
             playerController.showStat("total");
