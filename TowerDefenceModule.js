@@ -123,7 +123,7 @@ var gameModule = (function() {
     var oSettings =  {
         "size": 900,
         "radius": 4,
-        "side": 28,
+        "side": 25,
         "health": 100,
         "mana": 200,
         "range": 200,
@@ -131,21 +131,48 @@ var gameModule = (function() {
         "as": 5,
         "cc": 5,
         "cd": 50,
+        "skillDam": 1,
+        "skillAs": 0,
+        "skillRange": 0,
+        "skillCc": 0,
+        "skillCd": 0,
+        "skillChain": 0,
+        "skillSplit": 0,
         "runeTypes": ["tower", "dam", "as", "range", "cc", "cd", "chain", "split"],
         "runeCosts": [0, 100, 100, 100, 150, 150, 900, 1500],
         "runeStats": [0, 5, 5, 8, 4, 40],
-        "enemydam": 5,
-        "enemymana": 5,
-        "enemyexperience": 4,
-        "enemyspeed": 2.5
+        "enemyDam": 5,
+        "enemyMana": 5,
+        "enemyExperience": 4,
+        "enemySpeed": 2.5
     };
     var towerController = new Controller('tower');
     var playerController = new Controller('player');
     var skillController = new Controller('skill');
     var hexController = new Controller('hex');
 
-    var init = function(container) {
+    var init = function(container, options) {
         var eContainer = document.getElementById(container);
+        if (eContainer) {
+            initSettings(oSettings, options);
+            createElements(eContainer);
+            createGame();
+        }
+        else {
+            console.log("Container not found!");
+        }
+    };
+    var initSettings = function(oSettings, options) {
+        for (var key in options || {}) {
+            if (typeof options[key] === 'object') {
+                initSettings(oSettings[key], options[key]);
+            }
+            else {
+                oSettings[key] = options[key];
+            }
+        }
+    }
+    var createElements = function(container) {
         var eCanvas = document.createElement('div');
         eCanvas.setAttribute('id', 'canvas');
         eCanvas.setAttribute('class', 'canvas');
@@ -161,12 +188,11 @@ var gameModule = (function() {
         var eSkill = document.createElement('div');
         eSkill.setAttribute('id','skill-stats');
         eSkill.setAttribute('class','stats');
-        eContainer.appendChild(eCanvas);
-        eContainer.appendChild(eTower);
-        eContainer.appendChild(eControl);
-        eContainer.appendChild(ePlayer);
-        eContainer.appendChild(eSkill);
-        createGame();
+        container.appendChild(eCanvas);
+        container.appendChild(eTower);
+        container.appendChild(eControl);
+        container.appendChild(ePlayer);
+        container.appendChild(eSkill);
     };
     var createGame = function() {
         var eCanvas = document.getElementById('canvas');
@@ -263,6 +289,14 @@ var gameModule = (function() {
                 hexController.clearRadial();
                 hexController.createRadial(oGame.board.hexes[oGame.board.selected]);
             }
+        }
+    };
+    var collectBonus = function() {
+        var eBonus = document.getElementById(this.id);
+        console.log("bonus")
+        if (eBonus) {
+            eBonus.removeEventListener("click", collectBonus);
+            oGame.eSvg.removeChild(eBonus);
         }
     };
     
@@ -599,9 +633,9 @@ var gameModule = (function() {
     };
     Game.prototype.createExperience = function() {
         var svgExperience = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        svgExperience.setAttribute("x", -275);
-        svgExperience.setAttribute("y", 400);
-        svgExperience.setAttribute("width", 550);
+        svgExperience.setAttribute("x", -285);
+        svgExperience.setAttribute("y", 375);
+        svgExperience.setAttribute("width", 570);
         svgExperience.setAttribute("height", 10);
         svgExperience.setAttribute('stroke', '#444');
         svgExperience.setAttribute('stroke-width', '1px');
@@ -610,7 +644,7 @@ var gameModule = (function() {
         var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
         svgPattern.setAttribute("id", 'pattern-experience');
         svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
-        svgPattern.setAttribute("x", -300);
+        svgPattern.setAttribute("x", -310);
         svgPattern.setAttribute("y", 0);
         svgPattern.setAttribute("width", 600);
         svgPattern.setAttribute("height", 10);
@@ -986,9 +1020,45 @@ var gameModule = (function() {
         }
         return idFurthest;
     };
+    Game.prototype.enemyDeath = function(enemy) {
+        enemy.alive = false;
+        this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
+        var me = this;
+        setTimeout(function() {
+            me.enemyDrop(enemy);
+            delete enemy["pattern"];
+            var eEnemy = document.getElementById('enemy' + enemy.id);
+            if (eEnemy) { me.eDefs.removeChild(eEnemy); }
+            clearInterval(enemy.interval);
+            enemy.element.remove();
+        }, 100);
+    };
+    Game.prototype.enemyDrop = function(enemy) {
+        var nChance = Math.random();
+        if (nChance >= 0.9) {
+            var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            svgImage.setAttribute('x', enemy.center.x - 40);
+            svgImage.setAttribute('y', enemy.center.y - 40);
+            svgImage.setAttribute('width', 80);
+            svgImage.setAttribute('height', 80);
+            svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/ball-arcane.png');
+            svgImage.setAttribute('id', 'bonus-' + enemy.id);
+            svgImage.setAttribute('class', "bonus");
+            this.eSvg.appendChild(svgImage);
+            
+            svgImage.addEventListener("click", collectBonus);
+            
+            var me = this;
+            setTimeout(function() {
+                svgImage.removeEventListener("click", collectBonus);
+                if (svgImage.parentNode === me.eSvg) {
+                    me.eSvg.removeChild(svgImage);
+                }
+            }, 1500);
+        }
+    };
     Game.prototype.playerStartAttacking = function() {
         this.player.attacking = true;
-        var color = "red";
         var me = this;
         this.player.interval = setInterval(function() {
             var idClosest = me.enemyClosest(-1, me.board.center, me.tower.range);
@@ -1033,31 +1103,23 @@ var gameModule = (function() {
     Game.prototype.playerAttack = function(enemy) {
         enemy.health -= this.tower.dam * this.tower.accuracy;
         if (enemy.health <= 0) {
+            this.enemyDeath(enemy);
             if (this.tower.wave > 10) {
                 this.player.kills += 1;
                 this.player.accuracy = this.player.kills / this.player.total;
             }
-            enemy.alive = false;
             this.player.mana += enemy.mana;
             this.player.experience += enemy.experience;
             if (this.player.experience >= this.player.maxExperience) {
                 this.player.levelUp();
             };
-            this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
-            var me = this;
             oGame.showExperience();
             oGame.showGlobe("mana");
             playerController.showStat("kills");
             playerController.showStat("accuracy");
             playerController.showStat("mana");
             playerController.showStat("experience");
-            setTimeout(function() {
-                delete enemy["pattern"];
-                var eEnemy = document.getElementById('enemy' + enemy.id);
-                if (eEnemy) { me.eDefs.removeChild(eEnemy); }
-                clearInterval(enemy.interval);
-                enemy.element.remove();
-            }, 100);
+
         }
     };
     Game.prototype.createAttackPattern = function() {
@@ -1127,7 +1189,9 @@ var gameModule = (function() {
 //        svgAnim.setAttribute('from', from.x + ',' + from.y);
         svgAnim.setAttribute('dur', '0.15s');
         svgAnim.setAttribute('repeatCount', 1);
-        svgAnim.setAttribute('path', 'M' + from.x + ',' + from.y + ' L' + target.x + ',' + target.y + '');
+//        svgAnim.setAttribute('path', 'M' + from.x + ',' + from.y + ' L' + target.x + ',' + target.y + '');
+
+        svgAnim.setAttribute('path', 'M' + from.x + ',' + from.y + ' T' + target.x + ',' + target.y + '');
 
         var svgSet = document.createElementNS('http://www.w3.org/2000/svg', 'set');
         svgSet.setAttribute('attributeName', 'visibility');
@@ -1435,11 +1499,11 @@ var gameModule = (function() {
     function Enemy(id, to, center, wave) {
         this.id = id;
         this.alive = true;
-        this.damage = oSettings.enemydam;
-        this.mana = oSettings.enemymana;
-        this.experience = oSettings.enemyexperience;
-        this.mod = Math.random() + 1;
-        this.health = 100;//wave.health * this.mod;
+        this.damage = oSettings.enemyDam;
+        this.mana = oSettings.enemyMana;
+        this.experience = oSettings.enemyExperience;
+        this.mod = Math.random() + 0.5;
+        this.health = wave.health * this.mod;
         this.speed = wave.speed / this.mod;
         this.center = center;
         this.angleRadians = Math.atan2(to.y - this.center.y, to.x - this.center.x);
@@ -1449,7 +1513,7 @@ var gameModule = (function() {
         this.cosine = Math.cos(this.angleRadians);
         this.direction = Math.round(Math.random());
         this.type = Math.floor(Math.random() * 4);
-        this.size = 20 * this.mod;
+        this.size = 25 * this.mod;
         this.animate = 0;
         this.step = 0;
         this.attackPrimary = new Punt(-this.cosine * 50, -this.sine * 50);
@@ -1501,7 +1565,7 @@ var gameModule = (function() {
         this.skillPoints = 0;
         this.health = oSettings.health;
         this.maxHealth = oSettings.health;
-        this.mana = 3500;//oSettings.mana;
+        this.mana = oSettings.mana;
         this.range = oSettings.range;
         this.dam = oSettings.dam;
         this.as = oSettings.as;
@@ -1531,20 +1595,20 @@ var gameModule = (function() {
         this.factor = Math.round((Math.random() * 4) + 12);
         this.number = this.factor;
         this.health = this.parameter / this.factor;
-        this.speed = oSettings.enemyspeed;
+        this.speed = oSettings.enemySpeed;
         if (this.id > 10) {
             oGame.player.total += this.number;
             playerController.showStat("total");
         }
     };
     function Skill() {
-        this.dam = 1;
-        this.as = 0;
-        this.range = 4;
-        this.cc = 0;
-        this.cd = 0;
-        this.chain = 1;
-        this.split = 1;
+        this.dam = oSettings.skillDam;
+        this.as = oSettings.skillAs;
+        this.range = oSettings.skillRange;
+        this.cc = oSettings.skillCc;
+        this.cd = oSettings.skillCd;
+        this.chain = oSettings.skillChain;
+        this.split = oSettings.skillSplit;
     };
     function Tower() {
         this.wave = 0;

@@ -66,7 +66,7 @@ and open the template in the editor.
                 cursor: pointer;
             }
 */
-            .button {
+            .button, .bonus {
                 cursor: pointer;
             }
             .range0 { background-image: url(images/rune-range0.png); }
@@ -108,7 +108,30 @@ and open the template in the editor.
         <div class="container" id="container"></div>
         <script type="text/javascript"  src="TowerDefenceModule.js"></script>
         <script>
-            gameModule.init('container');
+            var oOptions =  {
+                "health": 100,
+                "mana": 200,
+                "range": 200,
+                "dam": 10,
+                "as": 5,
+                "cc": 5,
+                "cd": 50,
+                "skillDam": 1,
+                "skillAs": 0,
+                "skillRange": 0,
+                "skillCc": 0,
+                "skillCd": 0,
+                "skillChain": 0,
+                "skillSplit": 0,
+                "runeTypes": ["tower", "dam", "as", "range", "cc", "cd", "chain", "split"],
+                "runeCosts": [0, 100, 100, 100, 150, 150, 900, 1500],
+                "runeStats": [0, 5, 5, 8, 4, 40],
+                "enemy-dam": 5,
+                "enemy-mana": 5,
+                "enemy-experience": 4,
+                "enemy-speed": 5
+            };
+            gameModule.init('container', oOptions);
         </script>
     </body>
 </html>
