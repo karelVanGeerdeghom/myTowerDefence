@@ -1132,24 +1132,6 @@ var gameModule = (function() {
 
         }
     };
-    Game.prototype.createAttackPattern = function() {
-        var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-        svgPattern.setAttribute("id", "pattern-attack");
-        svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
-        svgPattern.setAttribute('y', -15);
-        svgPattern.setAttribute("width", 600);
-        svgPattern.setAttribute("height", 30);
-        
-        for (var i = 0; i < 1; i++) {
-            var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-            svgImage.setAttribute("width", 600);
-            svgImage.setAttribute("height", 30);
-            svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/attack-1-' + i + '.png');
-            svgPattern.appendChild(svgImage);
-        }
-        
-        this.eDefs.appendChild(svgPattern);
-    };
     Game.prototype.showAttack = function(from, enemy, when) {
         var nRadius = 35;
         var nLength1 = 100;
