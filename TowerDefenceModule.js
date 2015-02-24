@@ -215,10 +215,10 @@ var gameModule = (function() {
         oGame.createRuneFilters();
         oGame.startRuneFilters();
         oGame.createAttackPattern();
-        oGame.createRange();
         oGame.createExperience();
         oGame.createGlobe("health");
         oGame.createGlobe("mana");
+        oGame.createRange();
 
         var hexes = document.getElementsByTagName("polygon");
         for (var i = 0; i < hexes.length; i++) {
@@ -294,7 +294,7 @@ var gameModule = (function() {
     };
     var collectBonus = function() {
         var eBonus = document.getElementById(this.id);
-        console.log("bonus")
+        oGame.player.attackBonus += 1;
         if (eBonus) {
             eBonus.removeEventListener("click", collectBonus);
             oGame.eSvg.removeChild(eBonus);
@@ -578,17 +578,6 @@ var gameModule = (function() {
     Game.prototype.createDefs = function() {
         this.eDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
     };
-    Game.prototype.createRange = function() {
-        var svgRange = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        svgRange.setAttribute('cx', this.board.center.x);
-        svgRange.setAttribute('cy', this.board.center.y);
-        svgRange.setAttribute('r', this.tower.range);
-        svgRange.setAttribute('stroke', 'green');
-        svgRange.setAttribute('stroke-width', '1px');
-        svgRange.setAttribute('fill', 'none');
-        svgRange.setAttribute('id', 'towerRange');
-        this.eSvg.appendChild(svgRange);  
-    };
     Game.prototype.createGlobe = function(stat) {
         switch (stat) {
             case "health": var nX = -1; break;
@@ -668,6 +657,17 @@ var gameModule = (function() {
         this.eSvg.appendChild(svgExperience);
         this.eDefs.appendChild(svgPattern);
         
+    };
+    Game.prototype.createRange = function() {
+        var svgRange = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        svgRange.setAttribute('cx', this.board.center.x);
+        svgRange.setAttribute('cy', this.board.center.y);
+        svgRange.setAttribute('r', this.tower.range);
+        svgRange.setAttribute('stroke', 'green');
+        svgRange.setAttribute('stroke-width', '1px');
+        svgRange.setAttribute('fill', 'none');
+        svgRange.setAttribute('id', 'towerRange');
+        this.eSvg.appendChild(svgRange);  
     };
     Game.prototype.createRuneFilters = function() {
         for (var i = 0; i < 5; i++) {
@@ -1041,11 +1041,11 @@ var gameModule = (function() {
             if (eEnemy) { me.eDefs.removeChild(eEnemy); }
             clearInterval(enemy.interval);
             enemy.element.remove();
-        }, 75);
+        }, 225);
     };
     Game.prototype.enemyDrop = function(enemy) {
         var nChance = Math.random();
-        if (nChance >= 0.9) {
+        if (nChance >= 0.5) {
             var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
             svgImage.setAttribute('x', enemy.center.x - 40);
             svgImage.setAttribute('y', enemy.center.y - 40);
@@ -1074,7 +1074,7 @@ var gameModule = (function() {
             var idClosest = me.enemyClosest(-1, me.board.center, me.tower.range);
             if (idClosest >= 0) {
                 var oClosestPunt = new Punt(me.board.enemies[idClosest].center.x, me.board.enemies[idClosest].center.y);
-                me.showAttack(me.board.center, me.board.enemies[idClosest]);
+                me.showAttack(me.board.center, me.board.enemies[idClosest], Date.now());
                 me.playerAttack(me.board.enemies[idClosest]);
                 if (me.tower.chainEffect === true) {
                     setTimeout(function() {
@@ -1090,7 +1090,7 @@ var gameModule = (function() {
                 var idFurthest = me.enemyFurthest(-1, me.board.center, me.tower.range);
                 if (idFurthest >= 0) {
                     var oFurthestPunt = new Punt(me.board.enemies[idFurthest].center.x, me.board.enemies[idFurthest].center.y);
-                    me.showAttack(me.board.enemies[idFurthest].attackPrimary, oFurthestPunt, "water");
+                    me.showAttack(me.board.center, me.board.enemies[idFurthest]);
                     me.playerAttack(me.board.enemies[idFurthest]);
                     if (me.tower.chainEffect === true) {
                         setTimeout(function() {
@@ -1150,140 +1150,223 @@ var gameModule = (function() {
         
         this.eDefs.appendChild(svgPattern);
     };
-    Game.prototype.showAttack = function(from, enemy) {
-        var nRadius = 30;
+    Game.prototype.showAttack = function(from, enemy, when) {
+        var nRadius = 35;
         var nLength1 = 100;
         var nLength2 = 90;
         var nLength3 = 80;
         var nLength4 = 70;
-        var nOffset1 = 4;
-        var nOffset2 = 8;
-        var nOffset3 = 12;
+        var nLength5 = 150;
+        var nOffset1 = 6;
+        var nOffset2 = 12;
+        var nOffset3 = 18;
         var angleDegrees = enemy.angleAttack;
         var nDistance = getDistance(from, enemy.center) - 10;
+        var nId = when;
+        
+        if (this.player.attackBonus >= 0) {
+            var svgCenterPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sCenterPath = 'M' + parseFloat(from.x + nRadius) + ',' + from.y + ' L' + nDistance + ',' + 0 + '';
+            svgCenterPath.setAttribute('d', sCenterPath);
+            svgCenterPath.setAttribute('id', "svgCenterPath" + nId);
+            svgCenterPath.setAttribute('class', 'attackPath');
+            svgCenterPath.setAttribute('stroke', '#44FFFF');
+            svgCenterPath.setAttribute('stroke-dasharray', nLength1 + ' 1000');
+            svgCenterPath.setAttribute('stroke-dashoffset', nLength1);
+            svgCenterPath.setAttribute('stroke-width', '4px');
+            svgCenterPath.setAttribute('fill', 'none');
+            svgCenterPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+            svgCenterPath.setAttribute("filter","url(#Gaussian)");
+            this.eSvg.appendChild(svgCenterPath);
+            Velocity(svgCenterPath, { "stroke-dashoffset": -nDistance }, { duration: 200 });
+        }
+        if (this.player.attackBonus >= 1) {
+            var svgRightPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sRightPath = 'M' + parseFloat(from.x + nRadius + 5) + ',' + parseFloat(from.y + nOffset1);
+            sRightPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 48;
+            sRightPath += ' ' + nDistance + ',' + parseFloat(from.y + nOffset1 / 4);
+            svgRightPath.setAttribute('d', sRightPath);
+            svgRightPath.setAttribute('id', "svgRightPath" + nId);
+            svgRightPath.setAttribute('class', 'attackPath');
+            svgRightPath.setAttribute('stroke', '#FF4444');
+            svgRightPath.setAttribute('stroke-width', '4px');
+            svgRightPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
+            svgRightPath.setAttribute('stroke-dashoffset', nLength2);
+            svgRightPath.setAttribute('fill', 'none');
+            svgRightPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+            svgRightPath.setAttribute("filter","url(#Gaussian)");
+            this.eSvg.appendChild(svgRightPath);
+            Velocity(svgRightPath, { "stroke-dashoffset": -nDistance }, { duration: 250 });
 
-        var svgCenterPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        var sCenterPath = 'M' + parseFloat(from.x + nRadius) + ',' + from.y + ' L' + nDistance + ',' + 0 + '';
-        svgCenterPath.setAttribute('d', sCenterPath);
-        svgCenterPath.setAttribute('id', "svgCenterPath" + enemy.id);
-        svgCenterPath.setAttribute('class', 'test');
-        svgCenterPath.setAttribute('stroke', '#44FFFF');
-        svgCenterPath.setAttribute('stroke-dasharray', nLength1 + ' 1000');
-        svgCenterPath.setAttribute('stroke-dashoffset', nLength1);
-        svgCenterPath.setAttribute('stroke-width', '4px');
-        svgCenterPath.setAttribute('fill', 'none');
-        svgCenterPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
-        svgCenterPath.setAttribute("filter","url(#Gaussian)");
-        this.eSvg.appendChild(svgCenterPath);
-
-        var svgRightPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        var sRightPath = 'M' + parseFloat(from.x + nRadius + 5) + ',' + parseFloat(from.y + nOffset1);
-        sRightPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 48;
-        sRightPath += ' ' + nDistance + ',' + parseFloat(from.y + nOffset1 / 4);
-        svgRightPath.setAttribute('d', sRightPath);
-        svgRightPath.setAttribute('id', "svgRightPath" + enemy.id);
-        svgRightPath.setAttribute('stroke', '#FF4444');
-        svgRightPath.setAttribute('stroke-width', '4px');
-        svgRightPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
-        svgRightPath.setAttribute('stroke-dashoffset', nLength2);
-        svgRightPath.setAttribute('fill', 'none');
-        svgRightPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
-        svgRightPath.setAttribute("filter","url(#Gaussian)");
-        this.eSvg.appendChild(svgRightPath);
-
-        var svgLeftPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        var sLeftPath = 'M' + parseFloat(from.x + nRadius + 5) + ',' + parseFloat(from.y - nOffset1);
-        sLeftPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 48;
-        sLeftPath += ' ' + nDistance + ',' + parseFloat(from.y - nOffset1 / 4);
-        svgLeftPath.setAttribute('d', sLeftPath);
-        svgLeftPath.setAttribute('id', "svgLeftPath" + enemy.id);
-        svgLeftPath.setAttribute('stroke', '#FF4444');
-        svgLeftPath.setAttribute('stroke-width', '4px');
-        svgLeftPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
-        svgLeftPath.setAttribute('stroke-dashoffset', nLength2);
-        svgRightPath.setAttribute('fill', 'none');
-        svgLeftPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
-        svgLeftPath.setAttribute("filter","url(#Gaussian)");
-        this.eSvg.appendChild(svgLeftPath);
-
-        var svgRightCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        var sRightCurve = 'M' + parseFloat(from.x + nRadius - 2) + ',' + parseFloat(from.y + nOffset2);
-        sRightCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 12;
-        sRightCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset2 / 4);
-        svgRightCurve.setAttribute('d', sRightCurve);
-        svgRightCurve.setAttribute('id', "svgRightCurve" + enemy.id);
-        svgRightCurve.setAttribute('stroke', '#44FF44');
-        svgRightCurve.setAttribute('stroke-width', '4px');
-        svgRightCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
-        svgRightCurve.setAttribute('stroke-dashoffset', nLength3);
-        svgRightCurve.setAttribute('fill', 'none');
-        svgRightCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
-        svgRightCurve.setAttribute("filter","url(#Gaussian)");
-        this.eSvg.appendChild(svgRightCurve);
-
-        var svgLeftCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        var sLeftCurve = 'M' + parseFloat(from.x + nRadius - 2) + ',' + parseFloat(from.y - nOffset2);
-        sLeftCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 12;
-        sLeftCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset2 / 4);
-        svgLeftCurve.setAttribute('d', sLeftCurve);
-        svgLeftCurve.setAttribute('id', "svgLeftCurve" + enemy.id);
-        svgLeftCurve.setAttribute('stroke', '#44FF44');
-        svgLeftCurve.setAttribute('stroke-width', '4px');
-        svgLeftCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
-        svgLeftCurve.setAttribute('stroke-dashoffset', nLength3);
-        svgLeftCurve.setAttribute('fill', 'none');
-        svgLeftCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
-        svgLeftCurve.setAttribute("filter","url(#Gaussian)");
-        this.eSvg.appendChild(svgLeftCurve);
-
-        var svgRightFarCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        var sRightFarCurve = 'M' + parseFloat(from.x + nRadius - 4) + ',' + parseFloat(from.y + nOffset3);
-        sRightFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 7;
-        sRightFarCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset3 / 4);
-        svgRightFarCurve.setAttribute('d', sRightFarCurve);
-        svgRightFarCurve.setAttribute('id', "svgRightFarCurve" + enemy.id);
-        svgRightFarCurve.setAttribute('stroke', '#9933FF');
-        svgRightFarCurve.setAttribute('stroke-width', '4px');
-        svgRightFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
-        svgRightFarCurve.setAttribute('stroke-dashoffset', nLength4);
-        svgRightFarCurve.setAttribute('fill', 'none');
-        svgRightFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
-        svgRightFarCurve.setAttribute("filter","url(#Gaussian)");
-        this.eSvg.appendChild(svgRightFarCurve);
-
-        var svgLeftFarCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        var sLeftFarCurve = 'M' + parseFloat(from.x + nRadius - 4) + ',' + parseFloat(from.y - nOffset3);
-        sLeftFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 7;
-        sLeftFarCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset3 / 4);
-        svgLeftFarCurve.setAttribute('d', sLeftFarCurve);
-        svgLeftFarCurve.setAttribute('id', "svgLeftFarCurve" + enemy.id);
-        svgLeftFarCurve.setAttribute('stroke', '#9933FF');
-        svgLeftFarCurve.setAttribute('stroke-width', '4px');
-        svgLeftFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
-        svgLeftFarCurve.setAttribute('stroke-dashoffset', nLength4);
-        svgLeftFarCurve.setAttribute('fill', 'none');
-        svgLeftFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
-        svgLeftFarCurve.setAttribute("filter","url(#Gaussian)");
-        this.eSvg.appendChild(svgLeftFarCurve);
-
-        Velocity(document.getElementById("svgCenterPath" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
-        Velocity(document.getElementById("svgRightPath" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 150 });
-        Velocity(document.getElementById("svgLeftPath" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 150 });
-        Velocity(document.getElementById("svgRightCurve" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 175 });
-        Velocity(document.getElementById("svgLeftCurve" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 175 });
-        Velocity(document.getElementById("svgRightFarCurve" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
-        Velocity(document.getElementById("svgLeftFarCurve" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
+            var svgLeftPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sLeftPath = 'M' + parseFloat(from.x + nRadius + 5) + ',' + parseFloat(from.y - nOffset1);
+            sLeftPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 48;
+            sLeftPath += ' ' + nDistance + ',' + parseFloat(from.y - nOffset1 / 4);
+            svgLeftPath.setAttribute('d', sLeftPath);
+            svgLeftPath.setAttribute('id', "svgLeftPath" + nId);
+            svgLeftPath.setAttribute('class', 'attackPath');
+            svgLeftPath.setAttribute('stroke', '#FF4444');
+            svgLeftPath.setAttribute('stroke-width', '4px');
+            svgLeftPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
+            svgLeftPath.setAttribute('stroke-dashoffset', nLength2);
+            svgRightPath.setAttribute('fill', 'none');
+            svgLeftPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+            svgLeftPath.setAttribute("filter","url(#Gaussian)");
+            this.eSvg.appendChild(svgLeftPath);
+            Velocity(svgLeftPath, { "stroke-dashoffset": -nDistance }, { duration: 250 });
+        }
+        if (this.player.attackBonus >= 2) {
+            var svgRightCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sRightCurve = 'M' + parseFloat(from.x + nRadius - 2) + ',' + parseFloat(from.y + nOffset2);
+            sRightCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 12;
+            sRightCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset2 / 4);
+            svgRightCurve.setAttribute('d', sRightCurve);
+            svgRightCurve.setAttribute('id', "svgRightCurve" + nId);
+            svgRightCurve.setAttribute('class', 'attackPath');
+            svgRightCurve.setAttribute('stroke', '#44FF44');
+            svgRightCurve.setAttribute('stroke-width', '4px');
+            svgRightCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
+            svgRightCurve.setAttribute('stroke-dashoffset', nLength3);
+            svgRightCurve.setAttribute('fill', 'none');
+            svgRightCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+            svgRightCurve.setAttribute("filter","url(#Gaussian)");
+            this.eSvg.appendChild(svgRightCurve);
+            Velocity(svgRightCurve, { "stroke-dashoffset": -nDistance }, { duration: 225 });
             
+            var svgLeftCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sLeftCurve = 'M' + parseFloat(from.x + nRadius - 2) + ',' + parseFloat(from.y - nOffset2);
+            sLeftCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 12;
+            sLeftCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset2 / 4);
+            svgLeftCurve.setAttribute('d', sLeftCurve);
+            svgLeftCurve.setAttribute('id', "svgLeftCurve" + nId);
+            svgLeftCurve.setAttribute('class', 'attackPath');
+            svgLeftCurve.setAttribute('stroke', '#44FF44');
+            svgLeftCurve.setAttribute('stroke-width', '4px');
+            svgLeftCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
+            svgLeftCurve.setAttribute('stroke-dashoffset', nLength3);
+            svgLeftCurve.setAttribute('fill', 'none');
+            svgLeftCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+            svgLeftCurve.setAttribute("filter","url(#Gaussian)");
+            this.eSvg.appendChild(svgLeftCurve);
+            Velocity(svgLeftCurve, { "stroke-dashoffset": -nDistance }, { duration: 225 });
+        }
+        if (this.player.attackBonus >= 3) {
+            var svgRightFarCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sRightFarCurve = 'M' + parseFloat(from.x + nRadius - 4) + ',' + parseFloat(from.y + nOffset3);
+            sRightFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 7;
+            sRightFarCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset3 / 4);
+            svgRightFarCurve.setAttribute('d', sRightFarCurve);
+            svgRightFarCurve.setAttribute('id', "svgRightFarCurve" + nId);
+            svgRightFarCurve.setAttribute('class', 'attackPath');
+            svgRightFarCurve.setAttribute('stroke', '#9933FF');
+            svgRightFarCurve.setAttribute('stroke-width', '4px');
+            svgRightFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
+            svgRightFarCurve.setAttribute('stroke-dashoffset', nLength4);
+            svgRightFarCurve.setAttribute('fill', 'none');
+            svgRightFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+            svgRightFarCurve.setAttribute("filter","url(#Gaussian)");
+            this.eSvg.appendChild(svgRightFarCurve);
+            Velocity(svgRightFarCurve, { "stroke-dashoffset": -nDistance }, { duration: 275 });
+            
+            var svgLeftFarCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sLeftFarCurve = 'M' + parseFloat(from.x + nRadius - 4) + ',' + parseFloat(from.y - nOffset3);
+            sLeftFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 7;
+            sLeftFarCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset3 / 4);
+            svgLeftFarCurve.setAttribute('d', sLeftFarCurve);
+            svgLeftFarCurve.setAttribute('id', "svgLeftFarCurve" + nId);
+            svgLeftFarCurve.setAttribute('class', 'attackPath');
+            svgLeftFarCurve.setAttribute('stroke', '#9933FF');
+            svgLeftFarCurve.setAttribute('stroke-width', '4px');
+            svgLeftFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
+            svgLeftFarCurve.setAttribute('stroke-dashoffset', nLength4);
+            svgLeftFarCurve.setAttribute('fill', 'none');
+            svgLeftFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+            svgLeftFarCurve.setAttribute("filter","url(#Gaussian)");
+            this.eSvg.appendChild(svgLeftFarCurve);
+            Velocity(svgLeftFarCurve, { "stroke-dashoffset": -nDistance }, { duration: 275 });
+        }
+        if (this.player.attackBonus >= 4) {
+            var svgRightSine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sRightSine = 'M' + parseFloat(from.x + nRadius) + ',' + from.y;
+            sRightSine += ' Q' + parseFloat(from.x + nRadius + nDistance * 0.125) + ',' + parseFloat(from.y + nDistance * 0.125);
+            sRightSine += ' ' + parseFloat(from.x + nRadius + nDistance * 0.25) + ',' + from.y;
+            sRightSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.5) + ',' + from.y;
+            sRightSine += ' T' + nDistance + ',' + from.y;
+            svgRightSine.setAttribute('d', sRightSine);
+            svgRightSine.setAttribute('id', "svgRightSine" + nId);
+            svgRightSine.setAttribute('stroke', 'white');
+            svgRightSine.setAttribute('stroke-width', '4px');
+            svgRightSine.setAttribute('stroke-dasharray', nLength5 + ' 1500');
+            svgRightSine.setAttribute('stroke-dashoffset', nLength5);
+            svgRightSine.setAttribute('fill', 'none');
+            svgRightSine.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+            svgRightSine.setAttribute("filter","url(#Gaussian)");
+            this.eSvg.appendChild(svgRightSine);
+            var nSineLength = svgRightSine.getTotalLength();
+            Velocity(svgRightSine, { "stroke-dashoffset": -nSineLength }, { duration: 250 });
+
+            var svgLeftSine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sLeftSine = 'M' + parseFloat(from.x + nRadius) + ',' + from.y;
+            sLeftSine += ' Q' + parseFloat(from.x + nRadius + nDistance * 0.125) + ',-' + parseFloat(from.y + nDistance * 0.125);
+            sLeftSine += ' ' + parseFloat(from.x + nRadius + nDistance * 0.25) + ',' + from.y;
+            sLeftSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.5) + ',' + from.y;
+            sLeftSine += ' T' + nDistance + ',' + from.y;
+            svgLeftSine.setAttribute('d', sLeftSine);
+            svgLeftSine.setAttribute('id', "svgLeftSine" + nId);
+            svgLeftSine.setAttribute('stroke', 'white');
+            svgLeftSine.setAttribute('stroke-width', '4px');
+            svgLeftSine.setAttribute('stroke-dasharray', nLength5 + ' 1500');
+            svgLeftSine.setAttribute('stroke-dashoffset', nLength5);
+            svgLeftSine.setAttribute('fill', 'none');
+            svgLeftSine.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+            svgLeftSine.setAttribute("filter","url(#Gaussian)");
+            this.eSvg.appendChild(svgLeftSine);
+            Velocity(svgLeftSine, { "stroke-dashoffset": -nSineLength }, { duration: 250 });
+        }
+
+//        if (this.player.attackBonus >= 0) {
+//            Velocity(svgCenterPath, { "stroke-dashoffset": -nDistance }, { duration: 200 });
+//        }
+//        if (this.player.attackBonus >= 1) {
+//            Velocity(svgRightPath, { "stroke-dashoffset": -nDistance }, { duration: 225 });
+//            Velocity(svgLeftPath, { "stroke-dashoffset": -nDistance }, { duration: 225 });
+//        }
+//        if (this.player.attackBonus >= 2) {
+//            Velocity(svgRightCurve, { "stroke-dashoffset": -nDistance }, { duration: 175 });
+//            Velocity(svgLeftCurve, { "stroke-dashoffset": -nDistance }, { duration: 175 });
+//        }
+//        if (this.player.attackBonus >= 3) {
+//            Velocity(svgRightFarCurve, { "stroke-dashoffset": -nDistance }, { duration: 200 });
+//            Velocity(svgLeftFarCurve, { "stroke-dashoffset": -nDistance }, { duration: 200 });
+//        }
+//        if (this.player.attackBonus >= 0) {
+//            Velocity(svgRightSine, { "stroke-dashoffset": -nSineLength }, { duration: 200 });
+//            Velocity(svgLeftSine, { "stroke-dashoffset": -nSineLength }, { duration: 200 });
+//        }
+
         var me = this;
         setTimeout(function() {
-            me.eSvg.removeChild(svgCenterPath);
-            me.eSvg.removeChild(svgRightPath);
-            me.eSvg.removeChild(svgLeftPath);
-            me.eSvg.removeChild(svgRightCurve);
-            me.eSvg.removeChild(svgLeftCurve);
-            me.eSvg.removeChild(svgRightFarCurve);
-            me.eSvg.removeChild(svgLeftFarCurve);
-        }, 200);
+            var eCenterPath = document.getElementById("svgCenterPath" + nId);
+            var eRightPath = document.getElementById("svgRightPath" + nId);
+            var eLeftPath = document.getElementById("svgLeftPath" + nId);
+            var eRightCurve = document.getElementById("svgRightCurve" + nId);
+            var eLeftCurve = document.getElementById("svgLeftCurve" + nId);
+            var eRightFarCurve = document.getElementById("svgRightFarCurve" + nId);
+            var eLeftFarCurve = document.getElementById("svgLeftFarCurve" + nId);
+            var eRightSine = document.getElementById("svgRightSine" + nId);
+            var eLeftSine = document.getElementById("svgLeftSine" + nId);
+
+            if (eCenterPath) { me.eSvg.removeChild(eCenterPath); }
+            if (eRightPath) { me.eSvg.removeChild(eRightPath); }
+            if (eLeftPath) { me.eSvg.removeChild(eLeftPath); }
+            if (eRightCurve) { me.eSvg.removeChild(eRightCurve); }
+            if (eLeftCurve) { me.eSvg.removeChild(eLeftCurve); }
+            if (eRightFarCurve) { me.eSvg.removeChild(eRightFarCurve); }
+            if (eLeftFarCurve) { me.eSvg.removeChild(eLeftFarCurve); }
+            if (eRightSine) { me.eSvg.removeChild(eRightSine); }
+            if (eLeftSine) { me.eSvg.removeChild(eLeftSine); }
+        }, 275);
+      
     };
     
     function Board(canvas, center, radius, side) {
@@ -1642,6 +1725,7 @@ var gameModule = (function() {
         this.cc = oSettings.cc;
         this.cd = oSettings.cd;
         this.skill = new Skill();
+        this.attackBonus = 0;
     };
     Player.prototype.levelUp = function() {
         this.level += 1;

@@ -66,13 +66,14 @@ and open the template in the editor.
             var nLength2 = 90;
             var nLength3 = 80;
             var nLength4 = 70;
+            var nLength5 = 150;
             var nOffset1 = 4;
             var nOffset2 = 8;
             var nOffset3 = 12;
-            var id = 0;
+            var nId = 0;
 
             var from = new Punt(0, 0);
-            var to = new Punt(225, 225);
+            var to = new Punt(250, 250);
             
             var nDistance = getDistance(from, to) - 10;
             var angleRadians = Math.atan2(to.y - from.y, to.x - from.x);
@@ -90,7 +91,7 @@ and open the template in the editor.
             var svgCenterPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             var sCenterPath = 'M' + parseFloat(from.x + nRadius) + ',' + from.y + ' L' + nDistance + ',' + 0 + '';
             svgCenterPath.setAttribute('d', sCenterPath);
-            svgCenterPath.setAttribute('id', "svgCenterPath" + id);
+            svgCenterPath.setAttribute('id', "svgCenterPath" + nId);
             svgCenterPath.setAttribute('class', 'test');
             svgCenterPath.setAttribute('stroke', '#44FFFF');
             svgCenterPath.setAttribute('stroke-dasharray', nLength1 + ' 1000');
@@ -106,7 +107,7 @@ and open the template in the editor.
             sRightPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 48;
             sRightPath += ' ' + nDistance + ',' + parseFloat(from.y + nOffset1 / 4);
             svgRightPath.setAttribute('d', sRightPath);
-            svgRightPath.setAttribute('id', "svgRightPath" + id);
+            svgRightPath.setAttribute('id', "svgRightPath" + nId);
             svgRightPath.setAttribute('stroke', '#FF4444');
             svgRightPath.setAttribute('stroke-width', '4px');
             svgRightPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
@@ -121,7 +122,7 @@ and open the template in the editor.
             sLeftPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 48;
             sLeftPath += ' ' + nDistance + ',' + parseFloat(from.y - nOffset1 / 4);
             svgLeftPath.setAttribute('d', sLeftPath);
-            svgLeftPath.setAttribute('id', "svgLeftPath" + id);
+            svgLeftPath.setAttribute('id', "svgLeftPath" + nId);
             svgLeftPath.setAttribute('stroke', '#FF4444');
             svgLeftPath.setAttribute('stroke-width', '4px');
             svgLeftPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
@@ -136,7 +137,7 @@ and open the template in the editor.
             sRightCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 12;
             sRightCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset2 / 4);
             svgRightCurve.setAttribute('d', sRightCurve);
-            svgRightCurve.setAttribute('id', "svgRightCurve" + id);
+            svgRightCurve.setAttribute('id', "svgRightCurve" + nId);
             svgRightCurve.setAttribute('stroke', '#44FF44');
             svgRightCurve.setAttribute('stroke-width', '4px');
             svgRightCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
@@ -151,7 +152,7 @@ and open the template in the editor.
             sLeftCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 12;
             sLeftCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset2 / 4);
             svgLeftCurve.setAttribute('d', sLeftCurve);
-            svgLeftCurve.setAttribute('id', "svgLeftCurve" + id);
+            svgLeftCurve.setAttribute('id', "svgLeftCurve" + nId);
             svgLeftCurve.setAttribute('stroke', '#44FF44');
             svgLeftCurve.setAttribute('stroke-width', '4px');
             svgLeftCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
@@ -166,7 +167,7 @@ and open the template in the editor.
             sRightFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 7;
             sRightFarCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset3 / 4);
             svgRightFarCurve.setAttribute('d', sRightFarCurve);
-            svgRightFarCurve.setAttribute('id', "svgRightFarCurve" + id);
+            svgRightFarCurve.setAttribute('id', "svgRightFarCurve" + nId);
             svgRightFarCurve.setAttribute('stroke', '#9933FF');
             svgRightFarCurve.setAttribute('stroke-width', '4px');
             svgRightFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
@@ -181,7 +182,7 @@ and open the template in the editor.
             sLeftFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 7;
             sLeftFarCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset3 / 4);
             svgLeftFarCurve.setAttribute('d', sLeftFarCurve);
-            svgLeftFarCurve.setAttribute('id', "svgLeftFarCurve" + id);
+            svgLeftFarCurve.setAttribute('id', "svgLeftFarCurve" + nId);
             svgLeftFarCurve.setAttribute('stroke', '#9933FF');
             svgLeftFarCurve.setAttribute('stroke-width', '4px');
             svgLeftFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
@@ -190,14 +191,59 @@ and open the template in the editor.
             svgLeftFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgLeftFarCurve.setAttribute("filter","url(#Gaussian)");
             eSvg.appendChild(svgLeftFarCurve);
+            
+            var svgRightSine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sRightSine = 'M' + parseFloat(from.x + nRadius) + ',' + from.y;
+            sRightSine += ' Q' + parseFloat(from.x + nRadius + nDistance / 16) + ',' + parseFloat(from.y + nDistance / 8);
+            sRightSine += ' ' + parseFloat(from.x + nRadius + nDistance * 0.125) + ',' + from.y;
+            sRightSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.25) + ',' + from.y;
+            sRightSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.375) + ',' + from.y;
+            sRightSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.5) + ',' + from.y;
+            sRightSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.625) + ',' + from.y;
+            sRightSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.75) + ',' + from.y;
+            sRightSine += ' T' + nDistance + ',' + from.y;
+            svgRightSine.setAttribute('d', sRightSine);
+            svgRightSine.setAttribute('id', "svgRightSine" + nId);
+            svgRightSine.setAttribute('stroke', 'white');
+            svgRightSine.setAttribute('stroke-width', '4px');
+            svgRightSine.setAttribute('stroke-dasharray', nLength5 + ' 1500');
+            svgRightSine.setAttribute('stroke-dashoffset', nLength5);
+            svgRightSine.setAttribute('fill', 'none');
+            svgRightSine.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+            svgRightSine.setAttribute("filter","url(#Gaussian)");
+            eSvg.appendChild(svgRightSine);
 
-            Velocity(document.getElementById("svgCenterPath" + id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
-            Velocity(document.getElementById("svgRightPath" + id), { "stroke-dashoffset": -nDistance }, { duration: 150 });
-            Velocity(document.getElementById("svgLeftPath" + id), { "stroke-dashoffset": -nDistance }, { duration: 150 });
-            Velocity(document.getElementById("svgRightCurve" + id), { "stroke-dashoffset": -nDistance }, { duration: 175 });
-            Velocity(document.getElementById("svgLeftCurve" + id), { "stroke-dashoffset": -nDistance }, { duration: 175 });
-            Velocity(document.getElementById("svgRightFarCurve" + id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
-            Velocity(document.getElementById("svgLeftFarCurve" + id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
+            var svgLeftSine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sLeftSine = 'M' + parseFloat(from.x + nRadius) + ',' + from.y;
+            sLeftSine += ' Q' + parseFloat(from.x + nRadius + nDistance / 16) + ',-' + parseFloat(from.y + nDistance / 8);
+            sLeftSine += ' ' + parseFloat(from.x + nRadius + nDistance * 0.125) + ',' + from.y;
+            sLeftSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.25) + ',' + from.y;
+            sLeftSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.375) + ',' + from.y;
+            sLeftSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.5) + ',' + from.y;
+            sLeftSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.625) + ',' + from.y;
+            sLeftSine += ' T' + parseFloat(from.x + nRadius + nDistance * 0.75) + ',' + from.y;
+            sLeftSine += ' T' + nDistance + ',' + from.y;
+            svgLeftSine.setAttribute('d', sLeftSine);
+            svgLeftSine.setAttribute('id', "svgLeftSine" + nId);
+            svgLeftSine.setAttribute('stroke', 'white');
+            svgLeftSine.setAttribute('stroke-width', '4px');
+            svgLeftSine.setAttribute('stroke-dasharray', nLength5 + ' 1500');
+            svgLeftSine.setAttribute('stroke-dashoffset', nLength5);
+            svgLeftSine.setAttribute('fill', 'none');
+            svgLeftSine.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+            svgLeftSine.setAttribute("filter","url(#Gaussian)");
+            eSvg.appendChild(svgLeftSine);
+
+            var nSineLength = svgRightSine.getTotalLength();
+            Velocity(document.getElementById("svgCenterPath" + nId), { "stroke-dashoffset": -nDistance }, { duration: 200 });
+            Velocity(document.getElementById("svgRightPath" + nId), { "stroke-dashoffset": -nDistance }, { duration: 225 });
+            Velocity(document.getElementById("svgLeftPath" + nId), { "stroke-dashoffset": -nDistance }, { duration: 225 });
+            Velocity(document.getElementById("svgRightCurve" + nId), { "stroke-dashoffset": -nDistance }, { duration: 175 });
+            Velocity(document.getElementById("svgLeftCurve" + nId), { "stroke-dashoffset": -nDistance }, { duration: 175 });
+            Velocity(document.getElementById("svgRightFarCurve" + nId), { "stroke-dashoffset": -nDistance }, { duration: 200 });
+            Velocity(document.getElementById("svgLeftFarCurve" + nId), { "stroke-dashoffset": -nDistance }, { duration: 200 });
+            Velocity(document.getElementById("svgRightSine" + nId), { "stroke-dashoffset": -nSineLength }, { duration: 175 });
+            Velocity(document.getElementById("svgLeftSine" + nId), { "stroke-dashoffset": -nSineLength }, { duration: 175 });
     
             function Punt(x, y) {
                 this.x = x;
