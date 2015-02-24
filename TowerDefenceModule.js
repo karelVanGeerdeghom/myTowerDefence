@@ -211,6 +211,7 @@ var gameModule = (function() {
         skillController.createAllSkills();
         skillController.showAllSkills();
         hexController.init('hex');
+        oGame.createGaussianFilter();
         oGame.createRuneFilters();
         oGame.startRuneFilters();
         oGame.createAttackPattern();
@@ -701,6 +702,15 @@ var gameModule = (function() {
             this.eDefs.appendChild(svgFilter);
         }
     };
+    Game.prototype.createGaussianFilter = function() {
+        var svgFilter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+        svgFilter.setAttribute('id', 'Gaussian');
+
+        var svgGaussian = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+        svgGaussian.setAttribute("stdDeviation", "1");
+        svgFilter.appendChild(svgGaussian);
+        this.eDefs.appendChild(svgFilter);
+    };
     Game.prototype.startRuneFilters = function() {
         var feFuncR0 = document.getElementById("filter-feFuncR0");
         var feFuncG0 = document.getElementById("filter-feFuncG0");
@@ -1031,7 +1041,7 @@ var gameModule = (function() {
             if (eEnemy) { me.eDefs.removeChild(eEnemy); }
             clearInterval(enemy.interval);
             enemy.element.remove();
-        }, 100);
+        }, 75);
     };
     Game.prototype.enemyDrop = function(enemy) {
         var nChance = Math.random();
@@ -1064,7 +1074,7 @@ var gameModule = (function() {
             var idClosest = me.enemyClosest(-1, me.board.center, me.tower.range);
             if (idClosest >= 0) {
                 var oClosestPunt = new Punt(me.board.enemies[idClosest].center.x, me.board.enemies[idClosest].center.y);
-                me.showAttack(me.board.enemies[idClosest].attackPrimary, me.board.enemies[idClosest].center, "fire");
+                me.showAttack(me.board.center, me.board.enemies[idClosest]);
                 me.playerAttack(me.board.enemies[idClosest]);
                 if (me.tower.chainEffect === true) {
                     setTimeout(function() {
@@ -1140,80 +1150,140 @@ var gameModule = (function() {
         
         this.eDefs.appendChild(svgPattern);
     };
-    Game.prototype.showAttack = function(from, target, element, enemy) {
-//        var attack = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-//        attack.setAttribute('x1', source.x);
-//        attack.setAttribute('y1', source.y);
-//        attack.setAttribute('x2', target.x);
-//        attack.setAttribute('y2', target.y);
-//        attack.setAttribute('stroke', color);
-//        attack.setAttribute('stroke-width', '2px');
+    Game.prototype.showAttack = function(from, enemy) {
+        var nRadius = 30;
+        var nLength1 = 100;
+        var nLength2 = 90;
+        var nLength3 = 80;
+        var nLength4 = 70;
+        var nOffset1 = 4;
+        var nOffset2 = 8;
+        var nOffset3 = 12;
+        var angleDegrees = enemy.angleAttack;
+        var nDistance = getDistance(from, enemy.center) - 10;
 
-//        var nWidth = getDistance(this.board.center, enemy.center);
-//        var attack = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-//        attack.setAttribute('y', -15);
-//        attack.setAttribute('width', nWidth);
-//        attack.setAttribute('height', 30);
-//        attack.setAttribute('fill', "url(#pattern-attack)");
-//        attack.setAttribute('transform', 'rotate(' + enemy.angleAttack + ')');
-//        
-//        this.eSvg.appendChild(attack);
-//        setTimeout(function() {
-//            attack.remove();
-//        }, 50);
+        var svgCenterPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        var sCenterPath = 'M' + parseFloat(from.x + nRadius) + ',' + from.y + ' L' + nDistance + ',' + 0 + '';
+        svgCenterPath.setAttribute('d', sCenterPath);
+        svgCenterPath.setAttribute('id', "svgCenterPath" + enemy.id);
+        svgCenterPath.setAttribute('class', 'test');
+        svgCenterPath.setAttribute('stroke', '#44FFFF');
+        svgCenterPath.setAttribute('stroke-dasharray', nLength1 + ' 1000');
+        svgCenterPath.setAttribute('stroke-dashoffset', nLength1);
+        svgCenterPath.setAttribute('stroke-width', '4px');
+        svgCenterPath.setAttribute('fill', 'none');
+        svgCenterPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+        svgCenterPath.setAttribute("filter","url(#Gaussian)");
+        this.eSvg.appendChild(svgCenterPath);
 
-//        var svgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-//        svgPath.setAttribute('d','M0,0 L' + target.x + ',' + target.y + '');
-//        svgPath.setAttribute('id', 'attack-path');
-                
-        var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        svgImage.setAttribute("x", -20);
-        svgImage.setAttribute("y", -20);
-        svgImage.setAttribute("width", 40);
-        svgImage.setAttribute("height", 40);
-        svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/ball-' + element + '.png');
-        svgImage.setAttribute("visibility", 'hidden');
-        
-//        var svgAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animateTransform');
-//        svgAnim.setAttribute('attributeName', 'transform');
-//        svgAnim.setAttribute('begin', this.eSvg.getCurrentTime());
-//        svgAnim.setAttribute('dur', '0.1s');
-//        svgAnim.setAttribute('type', 'translate');
-//        svgAnim.setAttribute('from', '0,0');
-//        svgAnim.setAttribute('to', target.x + ',' + target.y);
-//        svgAnim.setAttribute('repeatCount', 1);
-//        svgAnim.setAttribute('id', this.eSvg.getCurrentTime());
-        
-        var svgAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
-        svgAnim.setAttribute('begin', this.eSvg.getCurrentTime());
-//        svgAnim.setAttribute('from', from.x + ',' + from.y);
-        svgAnim.setAttribute('dur', '0.15s');
-        svgAnim.setAttribute('repeatCount', 1);
-//        svgAnim.setAttribute('path', 'M' + from.x + ',' + from.y + ' L' + target.x + ',' + target.y + '');
+        var svgRightPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        var sRightPath = 'M' + parseFloat(from.x + nRadius + 5) + ',' + parseFloat(from.y + nOffset1);
+        sRightPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 48;
+        sRightPath += ' ' + nDistance + ',' + parseFloat(from.y + nOffset1 / 4);
+        svgRightPath.setAttribute('d', sRightPath);
+        svgRightPath.setAttribute('id', "svgRightPath" + enemy.id);
+        svgRightPath.setAttribute('stroke', '#FF4444');
+        svgRightPath.setAttribute('stroke-width', '4px');
+        svgRightPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
+        svgRightPath.setAttribute('stroke-dashoffset', nLength2);
+        svgRightPath.setAttribute('fill', 'none');
+        svgRightPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+        svgRightPath.setAttribute("filter","url(#Gaussian)");
+        this.eSvg.appendChild(svgRightPath);
 
-        svgAnim.setAttribute('path', 'M' + from.x + ',' + from.y + ' T' + target.x + ',' + target.y + '');
+        var svgLeftPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        var sLeftPath = 'M' + parseFloat(from.x + nRadius + 5) + ',' + parseFloat(from.y - nOffset1);
+        sLeftPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 48;
+        sLeftPath += ' ' + nDistance + ',' + parseFloat(from.y - nOffset1 / 4);
+        svgLeftPath.setAttribute('d', sLeftPath);
+        svgLeftPath.setAttribute('id', "svgLeftPath" + enemy.id);
+        svgLeftPath.setAttribute('stroke', '#FF4444');
+        svgLeftPath.setAttribute('stroke-width', '4px');
+        svgLeftPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
+        svgLeftPath.setAttribute('stroke-dashoffset', nLength2);
+        svgRightPath.setAttribute('fill', 'none');
+        svgLeftPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+        svgLeftPath.setAttribute("filter","url(#Gaussian)");
+        this.eSvg.appendChild(svgLeftPath);
 
-        var svgSet = document.createElementNS('http://www.w3.org/2000/svg', 'set');
-        svgSet.setAttribute('attributeName', 'visibility');
-        svgSet.setAttribute('from', 'hidden');
-        svgSet.setAttribute('to', 'visible');
-        svgSet.setAttribute('begin', this.eSvg.getCurrentTime());
+        var svgRightCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        var sRightCurve = 'M' + parseFloat(from.x + nRadius - 2) + ',' + parseFloat(from.y + nOffset2);
+        sRightCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 12;
+        sRightCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset2 / 4);
+        svgRightCurve.setAttribute('d', sRightCurve);
+        svgRightCurve.setAttribute('id', "svgRightCurve" + enemy.id);
+        svgRightCurve.setAttribute('stroke', '#44FF44');
+        svgRightCurve.setAttribute('stroke-width', '4px');
+        svgRightCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
+        svgRightCurve.setAttribute('stroke-dashoffset', nLength3);
+        svgRightCurve.setAttribute('fill', 'none');
+        svgRightCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+        svgRightCurve.setAttribute("filter","url(#Gaussian)");
+        this.eSvg.appendChild(svgRightCurve);
 
-        svgImage.appendChild(svgSet);
-        svgImage.appendChild(svgAnim);
-        this.eSvg.appendChild(svgImage);
+        var svgLeftCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        var sLeftCurve = 'M' + parseFloat(from.x + nRadius - 2) + ',' + parseFloat(from.y - nOffset2);
+        sLeftCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 12;
+        sLeftCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset2 / 4);
+        svgLeftCurve.setAttribute('d', sLeftCurve);
+        svgLeftCurve.setAttribute('id', "svgLeftCurve" + enemy.id);
+        svgLeftCurve.setAttribute('stroke', '#44FF44');
+        svgLeftCurve.setAttribute('stroke-width', '4px');
+        svgLeftCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
+        svgLeftCurve.setAttribute('stroke-dashoffset', nLength3);
+        svgLeftCurve.setAttribute('fill', 'none');
+        svgLeftCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+        svgLeftCurve.setAttribute("filter","url(#Gaussian)");
+        this.eSvg.appendChild(svgLeftCurve);
 
+        var svgRightFarCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        var sRightFarCurve = 'M' + parseFloat(from.x + nRadius - 4) + ',' + parseFloat(from.y + nOffset3);
+        sRightFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 7;
+        sRightFarCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset3 / 4);
+        svgRightFarCurve.setAttribute('d', sRightFarCurve);
+        svgRightFarCurve.setAttribute('id', "svgRightFarCurve" + enemy.id);
+        svgRightFarCurve.setAttribute('stroke', '#9933FF');
+        svgRightFarCurve.setAttribute('stroke-width', '4px');
+        svgRightFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
+        svgRightFarCurve.setAttribute('stroke-dashoffset', nLength4);
+        svgRightFarCurve.setAttribute('fill', 'none');
+        svgRightFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+        svgRightFarCurve.setAttribute("filter","url(#Gaussian)");
+        this.eSvg.appendChild(svgRightFarCurve);
 
+        var svgLeftFarCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        var sLeftFarCurve = 'M' + parseFloat(from.x + nRadius - 4) + ',' + parseFloat(from.y - nOffset3);
+        sLeftFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 7;
+        sLeftFarCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset3 / 4);
+        svgLeftFarCurve.setAttribute('d', sLeftFarCurve);
+        svgLeftFarCurve.setAttribute('id', "svgLeftFarCurve" + enemy.id);
+        svgLeftFarCurve.setAttribute('stroke', '#9933FF');
+        svgLeftFarCurve.setAttribute('stroke-width', '4px');
+        svgLeftFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
+        svgLeftFarCurve.setAttribute('stroke-dashoffset', nLength4);
+        svgLeftFarCurve.setAttribute('fill', 'none');
+        svgLeftFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+        svgLeftFarCurve.setAttribute("filter","url(#Gaussian)");
+        this.eSvg.appendChild(svgLeftFarCurve);
+
+        Velocity(document.getElementById("svgCenterPath" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
+        Velocity(document.getElementById("svgRightPath" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 150 });
+        Velocity(document.getElementById("svgLeftPath" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 150 });
+        Velocity(document.getElementById("svgRightCurve" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 175 });
+        Velocity(document.getElementById("svgLeftCurve" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 175 });
+        Velocity(document.getElementById("svgRightFarCurve" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
+        Velocity(document.getElementById("svgLeftFarCurve" + enemy.id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
             
         var me = this;
         setTimeout(function() {
-            me.eSvg.removeChild(svgImage);
-        }, 150);
-        
-
-//        svgAnim.appendChild(mPath);
-
-//        this.eSvg.appendChild(svgPath);
+            me.eSvg.removeChild(svgCenterPath);
+            me.eSvg.removeChild(svgRightPath);
+            me.eSvg.removeChild(svgLeftPath);
+            me.eSvg.removeChild(svgRightCurve);
+            me.eSvg.removeChild(svgLeftCurve);
+            me.eSvg.removeChild(svgRightFarCurve);
+            me.eSvg.removeChild(svgLeftFarCurve);
+        }, 200);
     };
     
     function Board(canvas, center, radius, side) {

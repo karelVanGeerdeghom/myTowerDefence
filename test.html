@@ -20,6 +20,7 @@ and open the template in the editor.
     <body>
         <div id="container" class="container"></div>
         
+        <script type="text/javascript"  src="velocity.min.js"></script>
         <script>
             var eContainer = document.getElementById('container');
             
@@ -37,139 +38,167 @@ and open the template in the editor.
             svgFilter.setAttribute('id', 'Gaussian');
             
             var svgGaussian = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
-            svgGaussian.setAttribute("stdDeviation", "0.75");
+            svgGaussian.setAttribute("stdDeviation", "1");
             svgFilter.appendChild(svgGaussian);
 
-            var feComponentTransfer = document.createElementNS("http://www.w3.org/2000/svg", "feComponentTransfer");
-            svgFilter.appendChild(feComponentTransfer);
-            
-            var feFuncR = document.createElementNS("http://www.w3.org/2000/svg", "feFuncR");
-            feFuncR.setAttribute("type", "linear");
-            feFuncR.setAttribute("slope", "3");
-            feComponentTransfer.appendChild(feFuncR);
-
-            var feFuncG = document.createElementNS("http://www.w3.org/2000/svg", "feFuncG");
-            feFuncG.setAttribute("type", "linear");
-            feFuncG.setAttribute("slope", "3");
-            feComponentTransfer.appendChild(feFuncG);
-
-            var feFuncB  = document.createElementNS("http://www.w3.org/2000/svg", "feFuncB");
-            feFuncB .setAttribute("type", "linear");
-            feFuncB .setAttribute("slope", "3");
-            feComponentTransfer.appendChild(feFuncB);
+//            var feComponentTransfer = document.createElementNS("http://www.w3.org/2000/svg", "feComponentTransfer");
+//            svgFilter.appendChild(feComponentTransfer);
+//            
+//            var feFuncR = document.createElementNS("http://www.w3.org/2000/svg", "feFuncR");
+//            feFuncR.setAttribute("type", "linear");
+//            feFuncR.setAttribute("slope", "4");
+//            feComponentTransfer.appendChild(feFuncR);
+//
+//            var feFuncG = document.createElementNS("http://www.w3.org/2000/svg", "feFuncG");
+//            feFuncG.setAttribute("type", "linear");
+//            feFuncG.setAttribute("slope", "4");
+//            feComponentTransfer.appendChild(feFuncG);
+//
+//            var feFuncB  = document.createElementNS("http://www.w3.org/2000/svg", "feFuncB");
+//            feFuncB .setAttribute("type", "linear");
+//            feFuncB .setAttribute("slope", "4");
+//            feComponentTransfer.appendChild(feFuncB);
             
             eDefs.appendChild(svgFilter);  
-            
+
+            var nRadius = 30;
+            var nLength1 = 100;
+            var nLength2 = 90;
+            var nLength3 = 80;
+            var nLength4 = 70;
+            var nOffset1 = 4;
+            var nOffset2 = 8;
+            var nOffset3 = 12;
+            var id = 0;
+
             var from = new Punt(0, 0);
-            var to = new Punt(300, 300);
+            var to = new Punt(225, 225);
             
-            var nDistance = getDistance(from, to);
+            var nDistance = getDistance(from, to) - 10;
             var angleRadians = Math.atan2(to.y - from.y, to.x - from.x);
             var angleDegrees = angleRadians * 180 / Math.PI;
             
-            var nRadius = 50;
             var svgCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             svgCircle.setAttribute('cx', from.x);
             svgCircle.setAttribute('cy', from.y);
             svgCircle.setAttribute('r', nRadius);
             svgCircle.setAttribute('stroke', 'green');
-            svgCircle.setAttribute('stroke-width', '2px');
+            svgCircle.setAttribute('stroke-width', '4px');
             svgCircle.setAttribute('fill', 'none');
             eSvg.appendChild(svgCircle);
         
             var svgCenterPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             var sCenterPath = 'M' + parseFloat(from.x + nRadius) + ',' + from.y + ' L' + nDistance + ',' + 0 + '';
             svgCenterPath.setAttribute('d', sCenterPath);
+            svgCenterPath.setAttribute('id', "svgCenterPath" + id);
             svgCenterPath.setAttribute('class', 'test');
             svgCenterPath.setAttribute('stroke', '#44FFFF');
-            svgCenterPath.setAttribute('stroke-width', '2px');
+            svgCenterPath.setAttribute('stroke-dasharray', nLength1 + ' 1000');
+            svgCenterPath.setAttribute('stroke-dashoffset', nLength1);
+            svgCenterPath.setAttribute('stroke-width', '4px');
+            svgCenterPath.setAttribute('fill', 'none');
             svgCenterPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgCenterPath.setAttribute("filter","url(#Gaussian)");
             eSvg.appendChild(svgCenterPath);
-           
-//            var svgAnimate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
-//            svgAnimate.setAttribute('attributeName', 'stroke-dashoffset');
-//            svgAnimate.setAttribute('from', '100');
-//            svgAnimate.setAttribute('to', '-' + (nDistance - 100));
-//            svgAnimate.setAttribute('begin', eSvg.getCurrentTime());
-//            svgAnimate.setAttribute('dur', '0.2s');
-//            svgAnimate.setAttribute('repeatCount', 1);
-//            svgCenterPath.appendChild(svgAnimate);
-    
-            var n1 = 8;
-            var n2 = 16;
-            var n3 = 24;
-            
+
             var svgRightPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            var sRightPath = 'M' + parseFloat(from.x + nRadius) + ',' + parseFloat(from.y + n1);
+            var sRightPath = 'M' + parseFloat(from.x + nRadius + 5) + ',' + parseFloat(from.y + nOffset1);
             sRightPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 48;
-            sRightPath += ' ' + nDistance + ',' + parseFloat(from.y + n1 /3);
+            sRightPath += ' ' + nDistance + ',' + parseFloat(from.y + nOffset1 / 4);
             svgRightPath.setAttribute('d', sRightPath);
+            svgRightPath.setAttribute('id', "svgRightPath" + id);
             svgRightPath.setAttribute('stroke', '#FF4444');
-            svgRightPath.setAttribute('stroke-width', '2px');
+            svgRightPath.setAttribute('stroke-width', '4px');
+            svgRightPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
+            svgRightPath.setAttribute('stroke-dashoffset', nLength2);
+            svgRightPath.setAttribute('fill', 'none');
             svgRightPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgRightPath.setAttribute("filter","url(#Gaussian)");
             eSvg.appendChild(svgRightPath);
-            
+
             var svgLeftPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            var sLeftPath = 'M' + parseFloat(from.x + nRadius) + ',' + parseFloat(from.y - n1);
+            var sLeftPath = 'M' + parseFloat(from.x + nRadius + 5) + ',' + parseFloat(from.y - nOffset1);
             sLeftPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 48;
-            sLeftPath += ' ' + nDistance + ',' + parseFloat(from.y - n1 /3);
+            sLeftPath += ' ' + nDistance + ',' + parseFloat(from.y - nOffset1 / 4);
             svgLeftPath.setAttribute('d', sLeftPath);
+            svgLeftPath.setAttribute('id', "svgLeftPath" + id);
             svgLeftPath.setAttribute('stroke', '#FF4444');
-            svgLeftPath.setAttribute('stroke-width', '2px');
+            svgLeftPath.setAttribute('stroke-width', '4px');
+            svgLeftPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
+            svgLeftPath.setAttribute('stroke-dashoffset', nLength2);
+            svgRightPath.setAttribute('fill', 'none');
             svgLeftPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgLeftPath.setAttribute("filter","url(#Gaussian)");
             eSvg.appendChild(svgLeftPath);
-            
+
             var svgRightCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            var sRightCurve = 'M' + parseFloat(from.x + nRadius - 2.5) + ',' + parseFloat(from.y + n2);
+            var sRightCurve = 'M' + parseFloat(from.x + nRadius - 2) + ',' + parseFloat(from.y + nOffset2);
             sRightCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 12;
-            sRightCurve += ' ' + nDistance + ',' + parseFloat(from.y + n2 /3);
+            sRightCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset2 / 4);
             svgRightCurve.setAttribute('d', sRightCurve);
+            svgRightCurve.setAttribute('id', "svgRightCurve" + id);
             svgRightCurve.setAttribute('stroke', '#44FF44');
-            svgRightCurve.setAttribute('stroke-width', '2px');
+            svgRightCurve.setAttribute('stroke-width', '4px');
+            svgRightCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
+            svgRightCurve.setAttribute('stroke-dashoffset', nLength3);
             svgRightCurve.setAttribute('fill', 'none');
             svgRightCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgRightCurve.setAttribute("filter","url(#Gaussian)");
             eSvg.appendChild(svgRightCurve);
 
             var svgLeftCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            var sLeftCurve = 'M' + parseFloat(from.x + nRadius - 2.5) + ',' + parseFloat(from.y - n2);
+            var sLeftCurve = 'M' + parseFloat(from.x + nRadius - 2) + ',' + parseFloat(from.y - nOffset2);
             sLeftCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 12;
-            sLeftCurve += ' ' + nDistance + ',' + parseFloat(from.y - n2 /3);
+            sLeftCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset2 / 4);
             svgLeftCurve.setAttribute('d', sLeftCurve);
+            svgLeftCurve.setAttribute('id', "svgLeftCurve" + id);
             svgLeftCurve.setAttribute('stroke', '#44FF44');
-            svgLeftCurve.setAttribute('stroke-width', '2px');
+            svgLeftCurve.setAttribute('stroke-width', '4px');
+            svgLeftCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
+            svgLeftCurve.setAttribute('stroke-dashoffset', nLength3);
             svgLeftCurve.setAttribute('fill', 'none');
             svgLeftCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgLeftCurve.setAttribute("filter","url(#Gaussian)");
             eSvg.appendChild(svgLeftCurve);
-            
+
             var svgRightFarCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            var sRightFarCurve = 'M' + parseFloat(from.x + nRadius - 5) + ',' + parseFloat(from.y + n3);
+            var sRightFarCurve = 'M' + parseFloat(from.x + nRadius - 4) + ',' + parseFloat(from.y + nOffset3);
             sRightFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 7;
-            sRightFarCurve += ' ' + nDistance + ',' + parseFloat(from.y + n3 /3);
+            sRightFarCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset3 / 4);
             svgRightFarCurve.setAttribute('d', sRightFarCurve);
+            svgRightFarCurve.setAttribute('id', "svgRightFarCurve" + id);
             svgRightFarCurve.setAttribute('stroke', '#9933FF');
-            svgRightFarCurve.setAttribute('stroke-width', '2px');
+            svgRightFarCurve.setAttribute('stroke-width', '4px');
+            svgRightFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
+            svgRightFarCurve.setAttribute('stroke-dashoffset', nLength4);
             svgRightFarCurve.setAttribute('fill', 'none');
             svgRightFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgRightFarCurve.setAttribute("filter","url(#Gaussian)");
             eSvg.appendChild(svgRightFarCurve);
 
             var svgLeftFarCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            var sLeftFarCurve = 'M' + parseFloat(from.x + nRadius - 5) + ',' + parseFloat(from.y - n3);
+            var sLeftFarCurve = 'M' + parseFloat(from.x + nRadius - 4) + ',' + parseFloat(from.y - nOffset3);
             sLeftFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 7;
-            sLeftFarCurve += ' ' + nDistance + ',' + parseFloat(from.y - n3 /3);
+            sLeftFarCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset3 / 4);
             svgLeftFarCurve.setAttribute('d', sLeftFarCurve);
+            svgLeftFarCurve.setAttribute('id', "svgLeftFarCurve" + id);
             svgLeftFarCurve.setAttribute('stroke', '#9933FF');
-            svgLeftFarCurve.setAttribute('stroke-width', '2px');
+            svgLeftFarCurve.setAttribute('stroke-width', '4px');
+            svgLeftFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
+            svgLeftFarCurve.setAttribute('stroke-dashoffset', nLength4);
             svgLeftFarCurve.setAttribute('fill', 'none');
             svgLeftFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgLeftFarCurve.setAttribute("filter","url(#Gaussian)");
             eSvg.appendChild(svgLeftFarCurve);
 
+            Velocity(document.getElementById("svgCenterPath" + id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
+            Velocity(document.getElementById("svgRightPath" + id), { "stroke-dashoffset": -nDistance }, { duration: 150 });
+            Velocity(document.getElementById("svgLeftPath" + id), { "stroke-dashoffset": -nDistance }, { duration: 150 });
+            Velocity(document.getElementById("svgRightCurve" + id), { "stroke-dashoffset": -nDistance }, { duration: 175 });
+            Velocity(document.getElementById("svgLeftCurve" + id), { "stroke-dashoffset": -nDistance }, { duration: 175 });
+            Velocity(document.getElementById("svgRightFarCurve" + id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
+            Velocity(document.getElementById("svgLeftFarCurve" + id), { "stroke-dashoffset": -nDistance }, { duration: 200 });
+    
             function Punt(x, y) {
                 this.x = x;
                 this.y = y;
