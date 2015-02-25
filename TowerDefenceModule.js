@@ -297,8 +297,7 @@ var gameModule = (function() {
     var bonusCollect = function() {
         var eBonus = document.getElementById(this.id);
         var nBonusId = this.id.split('-')[2];
-        var oBonus = new Bonus(nBonusId);
-        oGame.board.bonuses.push(oBonus);
+        oGame.player.attackBonuses[nBonusId] += 1;
         oGame.board.bonusShow();
         if (eBonus) {
             eBonus.removeEventListener("click", bonusCollect);
@@ -306,13 +305,9 @@ var gameModule = (function() {
         }
     };
     var bonusUse = function() {
-        var nArrayId = this.id.split('-')[2];
-        var nId = oGame.board.bonuses[nArrayId].id;
-        var eBonusSlot = document.getElementById(this.id);
-        eBonusSlot.setAttribute('fill', 'none');
-        
+        var nId = this.id.split('-')[2];
         oGame.player.attackBonus[nId] = true;
-        oGame.board.bonuses.splice(nArrayId, 1);
+        oGame.player.attackBonuses[nId] -= 1;
         oGame.board.bonusShow();
     };
     
@@ -627,7 +622,7 @@ var gameModule = (function() {
     Game.prototype.createGaussianFilter = function() {
         var svgFilter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
         svgFilter.setAttribute('id', 'Gaussian');
-
+        
         var svgGaussian = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
         svgGaussian.setAttribute("stdDeviation", "1");
         svgFilter.appendChild(svgGaussian);
@@ -835,10 +830,10 @@ var gameModule = (function() {
         var nId = Math.floor(Math.random() * 4);
         if (nChance >= 0.5) {
             var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-            svgImage.setAttribute('x', enemy.center.x - 40);
-            svgImage.setAttribute('y', enemy.center.y - 40);
-            svgImage.setAttribute('width', 80);
-            svgImage.setAttribute('height', 80);
+            svgImage.setAttribute('x', enemy.center.x - 25);
+            svgImage.setAttribute('y', enemy.center.y - 25);
+            svgImage.setAttribute('width', 50);
+            svgImage.setAttribute('height', 50);
             svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/bonus-' + nId + '.png');
             svgImage.setAttribute('id', 'bonus-' + enemy.id + '-' + nId);
             svgImage.setAttribute('class', "bonus");
@@ -1115,7 +1110,6 @@ var gameModule = (function() {
             if (eRightSine) { me.eSvg.removeChild(eRightSine); }
             if (eLeftSine) { me.eSvg.removeChild(eLeftSine); }
         }, 275);
-      
     };
     Game.prototype.bonusPatternCreate = function() {
         for (var i = 0; i < 4; i++) {
@@ -1145,7 +1139,6 @@ var gameModule = (function() {
         this.height = Math.sqrt(3 * this.side * this.side);
         this.hexes = [];
         this.enemies = [];
-        this.bonuses = [];
         this.selected = -1;
     };
     Board.prototype.setValues = function() {
@@ -1466,7 +1459,7 @@ var gameModule = (function() {
             var svgBonus = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             svgBonus.setAttribute("id", "bonus-slot-" + i);
             svgBonus.setAttribute("class", "bonus-slot");
-            svgBonus.setAttribute("x", -250 + (i * 50));
+            svgBonus.setAttribute("x", -255 + (i * 50));
             svgBonus.setAttribute("y", 370);
             svgBonus.setAttribute("width", 50);
             svgBonus.setAttribute("height", 50);
@@ -1475,13 +1468,31 @@ var gameModule = (function() {
             svgBonus.setAttribute('fill', 'none');
             oGame.eSvg.appendChild(svgBonus);
             
+            var svgNumber = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            svgNumber.setAttribute('x', -250 + (i * 50));
+            svgNumber.setAttribute('y', 415);
+            svgNumber.setAttribute('font-size', '12px');
+            svgNumber.setAttribute('stroke', 'none');
+            svgNumber.setAttribute('fill', 'white');
+            svgNumber.setAttribute('id', 'bonus-slot-text-' + i);
+            oGame.eSvg.appendChild(svgNumber);
+            
             svgBonus.addEventListener("click", bonusUse);
         }
     };
     Board.prototype.bonusShow = function() {
-        for (var i = 0; i  < this.bonuses.length; i++) {
+        for (var i = 0; i  < 10; i++) {
             var eBonus = document.getElementById('bonus-slot-' + i);
-            eBonus.setAttribute('fill', 'url(#bonus-pattern-' + this.bonuses[i].id + ')');
+            var eNumber = document.getElementById('bonus-slot-text-' + i);
+            if (eNumber.hasChildNodes()) { eNumber.removeChild(eNumber.firstChild); }
+            if (oGame.player.attackBonuses[i] > 0) {
+                eBonus.setAttribute('fill', 'url(#bonus-pattern-' + i + ')');
+                var nNumber = document.createTextNode(oGame.player.attackBonuses[i]);
+                eNumber.appendChild(nNumber);
+            }
+            else {
+                eBonus.setAttribute('fill', 'none');
+            }
         }
     };
     Board.prototype.textShow = function(text, id) {
@@ -1687,8 +1698,8 @@ var gameModule = (function() {
         this.cc = oSettings.cc;
         this.cd = oSettings.cd;
         this.skill = new Skill();
-        this.attackBonus = [false, false, false, false];
-        
+        this.attackBonus = [false, false, false, false, false, false, false, false, false, false];
+        this.attackBonuses = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     };
     Player.prototype.levelUp = function() {
         this.level += 1;
@@ -1746,10 +1757,6 @@ var gameModule = (function() {
         this.cd = 0;
         this.range = 0;
     };
-    function Bonus(id) {
-        this.type = oSettings.bonusTypes[id];
-        this.id = id;
-    }
 
     return {
         init: init
