@@ -215,8 +215,9 @@ var gameModule = (function() {
         oGame.createGaussianFilter();
         oGame.createRuneFilters();
         oGame.startRuneFilters();
+        oGame.bonusPatternCreate();
         oGame.board.experienceCreate();
-        oGame.board.bonusBarCreate();
+        oGame.board.bonusCreate();
         oGame.board.globeCreate("health");
         oGame.board.globeCreate("mana");
         oGame.board.rangeCreate();
@@ -295,14 +296,24 @@ var gameModule = (function() {
     };
     var bonusCollect = function() {
         var eBonus = document.getElementById(this.id);
-        console.log(this.id);
-//        if (eBonus) {
-//            eBonus.removeEventListener("click", bonusCollect);
-//            oGame.eSvg.removeChild(eBonus);
-//        }
+        var nBonusId = this.id.split('-')[2];
+        var oBonus = new Bonus(nBonusId);
+        oGame.board.bonuses.push(oBonus);
+        oGame.board.bonusShow();
+        if (eBonus) {
+            eBonus.removeEventListener("click", bonusCollect);
+            oGame.eSvg.removeChild(eBonus);
+        }
     };
     var bonusUse = function() {
-        console.log(this.id);
+        var nArrayId = this.id.split('-')[2];
+        var nId = oGame.board.bonuses[nArrayId].id;
+        var eBonusSlot = document.getElementById(this.id);
+        eBonusSlot.setAttribute('fill', 'none');
+        
+        oGame.player.attackBonus[nId] = true;
+        oGame.board.bonuses.splice(nArrayId, 1);
+        oGame.board.bonusShow();
     };
     
     function getDistance(from, to) {
@@ -821,14 +832,15 @@ var gameModule = (function() {
     };
     Game.prototype.enemyDrop = function(enemy) {
         var nChance = Math.random();
+        var nId = Math.floor(Math.random() * 4);
         if (nChance >= 0.5) {
             var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
             svgImage.setAttribute('x', enemy.center.x - 40);
             svgImage.setAttribute('y', enemy.center.y - 40);
             svgImage.setAttribute('width', 80);
             svgImage.setAttribute('height', 80);
-            svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/ball-arcane.png');
-            svgImage.setAttribute('id', 'bonus-' + enemy.id);
+            svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/bonus-' + nId + '.png');
+            svgImage.setAttribute('id', 'bonus-' + enemy.id + '-' + nId);
             svgImage.setAttribute('class', "bonus");
             this.eSvg.appendChild(svgImage);
             
@@ -922,23 +934,22 @@ var gameModule = (function() {
         var nDistance = getDistance(from, enemy.center) - 10;
         var nId = when;
         
-        if (this.player.attackBonus >= 0) {
-            var svgCenterPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            var sCenterPath = 'M' + parseFloat(from.x + nRadius) + ',' + from.y + ' L' + nDistance + ',' + 0 + '';
-            svgCenterPath.setAttribute('d', sCenterPath);
-            svgCenterPath.setAttribute('id', "svgCenterPath" + nId);
-            svgCenterPath.setAttribute('class', 'attackPath');
-            svgCenterPath.setAttribute('stroke', '#44FFFF');
-            svgCenterPath.setAttribute('stroke-dasharray', nLength1 + ' 1000');
-            svgCenterPath.setAttribute('stroke-dashoffset', nLength1);
-            svgCenterPath.setAttribute('stroke-width', '4px');
-            svgCenterPath.setAttribute('fill', 'none');
-            svgCenterPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
-            svgCenterPath.setAttribute("filter","url(#Gaussian)");
-            this.eSvg.appendChild(svgCenterPath);
-            Velocity(svgCenterPath, { "stroke-dashoffset": -nDistance }, { duration: 200 });
-        }
-        if (this.player.attackBonus >= 1) {
+        var svgCenterPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        var sCenterPath = 'M' + parseFloat(from.x + nRadius) + ',' + from.y + ' L' + nDistance + ',' + 0 + '';
+        svgCenterPath.setAttribute('d', sCenterPath);
+        svgCenterPath.setAttribute('id', "svgCenterPath" + nId);
+        svgCenterPath.setAttribute('class', 'attackPath');
+        svgCenterPath.setAttribute('stroke', '#44FFFF');
+        svgCenterPath.setAttribute('stroke-dasharray', nLength1 + ' 1000');
+        svgCenterPath.setAttribute('stroke-dashoffset', nLength1);
+        svgCenterPath.setAttribute('stroke-width', '4px');
+        svgCenterPath.setAttribute('fill', 'none');
+        svgCenterPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
+        svgCenterPath.setAttribute("filter","url(#Gaussian)");
+        this.eSvg.appendChild(svgCenterPath);
+        Velocity(svgCenterPath, { "stroke-dashoffset": -nDistance }, { duration: 200 });
+            
+        if (this.player.attackBonus[0] === true) {
             var svgRightPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             var sRightPath = 'M' + parseFloat(from.x + nRadius + 5) + ',' + parseFloat(from.y + nOffset1);
             sRightPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 48;
@@ -973,7 +984,7 @@ var gameModule = (function() {
             this.eSvg.appendChild(svgLeftPath);
             Velocity(svgLeftPath, { "stroke-dashoffset": -nDistance }, { duration: 250 });
         }
-        if (this.player.attackBonus >= 2) {
+        if (this.player.attackBonus[1] === true) {
             var svgRightCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             var sRightCurve = 'M' + parseFloat(from.x + nRadius - 2) + ',' + parseFloat(from.y + nOffset2);
             sRightCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 12;
@@ -1008,7 +1019,7 @@ var gameModule = (function() {
             this.eSvg.appendChild(svgLeftCurve);
             Velocity(svgLeftCurve, { "stroke-dashoffset": -nDistance }, { duration: 225 });
         }
-        if (this.player.attackBonus >= 3) {
+        if (this.player.attackBonus[2] === true) {
             var svgRightFarCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             var sRightFarCurve = 'M' + parseFloat(from.x + nRadius - 4) + ',' + parseFloat(from.y + nOffset3);
             sRightFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 7;
@@ -1043,7 +1054,7 @@ var gameModule = (function() {
             this.eSvg.appendChild(svgLeftFarCurve);
             Velocity(svgLeftFarCurve, { "stroke-dashoffset": -nDistance }, { duration: 275 });
         }
-        if (this.player.attackBonus >= 4) {
+        if (this.player.attackBonus[3] === true) {
             var svgRightSine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             var sRightSine = 'M' + parseFloat(from.x + nRadius) + ',' + from.y;
             sRightSine += ' Q' + parseFloat(from.x + nRadius + nDistance * 0.125) + ',' + parseFloat(from.y + nDistance * 0.125);
@@ -1082,26 +1093,6 @@ var gameModule = (function() {
             Velocity(svgLeftSine, { "stroke-dashoffset": -nSineLength }, { duration: 250 });
         }
 
-//        if (this.player.attackBonus >= 0) {
-//            Velocity(svgCenterPath, { "stroke-dashoffset": -nDistance }, { duration: 200 });
-//        }
-//        if (this.player.attackBonus >= 1) {
-//            Velocity(svgRightPath, { "stroke-dashoffset": -nDistance }, { duration: 225 });
-//            Velocity(svgLeftPath, { "stroke-dashoffset": -nDistance }, { duration: 225 });
-//        }
-//        if (this.player.attackBonus >= 2) {
-//            Velocity(svgRightCurve, { "stroke-dashoffset": -nDistance }, { duration: 175 });
-//            Velocity(svgLeftCurve, { "stroke-dashoffset": -nDistance }, { duration: 175 });
-//        }
-//        if (this.player.attackBonus >= 3) {
-//            Velocity(svgRightFarCurve, { "stroke-dashoffset": -nDistance }, { duration: 200 });
-//            Velocity(svgLeftFarCurve, { "stroke-dashoffset": -nDistance }, { duration: 200 });
-//        }
-//        if (this.player.attackBonus >= 0) {
-//            Velocity(svgRightSine, { "stroke-dashoffset": -nSineLength }, { duration: 200 });
-//            Velocity(svgLeftSine, { "stroke-dashoffset": -nSineLength }, { duration: 200 });
-//        }
-
         var me = this;
         setTimeout(function() {
             var eCenterPath = document.getElementById("svgCenterPath" + nId);
@@ -1126,6 +1117,25 @@ var gameModule = (function() {
         }, 275);
       
     };
+    Game.prototype.bonusPatternCreate = function() {
+        for (var i = 0; i < 4; i++) {
+            var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+            svgPattern.setAttribute("id", "bonus-pattern-" + i);
+            svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
+            svgPattern.setAttribute("x", 0);
+            svgPattern.setAttribute("y", 370);
+            svgPattern.setAttribute("width", 50);
+            svgPattern.setAttribute("height", 50);
+
+            var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            svgImage.setAttribute("width", 50);
+            svgImage.setAttribute("height", 50);
+            svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/bonus-' + i + '.png');
+            svgPattern.appendChild(svgImage);
+            
+            this.eDefs.appendChild(svgPattern);
+        }
+    };
     
     function Board(canvas, center, radius, side) {
         this.canvas = canvas;
@@ -1135,6 +1145,7 @@ var gameModule = (function() {
         this.height = Math.sqrt(3 * this.side * this.side);
         this.hexes = [];
         this.enemies = [];
+        this.bonuses = [];
         this.selected = -1;
     };
     Board.prototype.setValues = function() {
@@ -1450,21 +1461,27 @@ var gameModule = (function() {
         var svgRange = document.getElementById('towerRange');
         svgRange.setAttribute('r', oGame.tower.range);
     };
-    Board.prototype.bonusBarCreate = function() {
-        for (var i = 1; i < 11; i++) {
+    Board.prototype.bonusCreate = function() {
+        for (var i = 0; i < 10; i++) {
             var svgBonus = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             svgBonus.setAttribute("id", "bonus-slot-" + i);
             svgBonus.setAttribute("class", "bonus-slot");
-            svgBonus.setAttribute("x", -250 + ((i - 1) * 50));
+            svgBonus.setAttribute("x", -250 + (i * 50));
             svgBonus.setAttribute("y", 370);
             svgBonus.setAttribute("width", 50);
             svgBonus.setAttribute("height", 50);
             svgBonus.setAttribute('stroke', '#444');
             svgBonus.setAttribute('stroke-width', '1px');
-            svgBonus.setAttribute('fill', 'transparent');
+            svgBonus.setAttribute('fill', 'none');
             oGame.eSvg.appendChild(svgBonus);
             
             svgBonus.addEventListener("click", bonusUse);
+        }
+    };
+    Board.prototype.bonusShow = function() {
+        for (var i = 0; i  < this.bonuses.length; i++) {
+            var eBonus = document.getElementById('bonus-slot-' + i);
+            eBonus.setAttribute('fill', 'url(#bonus-pattern-' + this.bonuses[i].id + ')');
         }
     };
     Board.prototype.textShow = function(text, id) {
@@ -1670,7 +1687,8 @@ var gameModule = (function() {
         this.cc = oSettings.cc;
         this.cd = oSettings.cd;
         this.skill = new Skill();
-        this.attackBonus = 0;
+        this.attackBonus = [false, false, false, false];
+        
     };
     Player.prototype.levelUp = function() {
         this.level += 1;
