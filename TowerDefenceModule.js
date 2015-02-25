@@ -141,6 +141,7 @@ var gameModule = (function() {
         "runeTypes": ["tower", "dam", "as", "range", "cc", "cd", "chain", "split"],
         "runeCosts": [0, 100, 100, 100, 150, 150, 900, 1500],
         "runeStats": [0, 5, 5, 8, 4, 40],
+        "bonusTypes": ["red", "green", "purple", "white"],
         "enemyDam": 5,
         "enemyMana": 5,
         "enemyExperience": 4,
@@ -214,11 +215,11 @@ var gameModule = (function() {
         oGame.createGaussianFilter();
         oGame.createRuneFilters();
         oGame.startRuneFilters();
-        oGame.createAttackPattern();
-        oGame.createExperience();
-        oGame.createGlobe("health");
-        oGame.createGlobe("mana");
-        oGame.createRange();
+        oGame.board.experienceCreate();
+        oGame.board.bonusBarCreate();
+        oGame.board.globeCreate("health");
+        oGame.board.globeCreate("mana");
+        oGame.board.rangeCreate();
 
         var hexes = document.getElementsByTagName("polygon");
         for (var i = 0; i < hexes.length; i++) {
@@ -292,13 +293,16 @@ var gameModule = (function() {
             }
         }
     };
-    var collectBonus = function() {
+    var bonusCollect = function() {
         var eBonus = document.getElementById(this.id);
-        oGame.player.attackBonus += 1;
-        if (eBonus) {
-            eBonus.removeEventListener("click", collectBonus);
-            oGame.eSvg.removeChild(eBonus);
-        }
+        console.log(this.id);
+//        if (eBonus) {
+//            eBonus.removeEventListener("click", bonusCollect);
+//            oGame.eSvg.removeChild(eBonus);
+//        }
+    };
+    var bonusUse = function() {
+        console.log(this.id);
     };
     
     function getDistance(from, to) {
@@ -578,129 +582,36 @@ var gameModule = (function() {
     Game.prototype.createDefs = function() {
         this.eDefs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
     };
-    Game.prototype.createGlobe = function(stat) {
-        switch (stat) {
-            case "health": var nX = -1; break;
-            case "mana": var nX = 1; break;
-        }
-        var nRadius = 70;
-        var svgGlobe = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        svgGlobe.setAttribute('cx', 365 * nX);
-        svgGlobe.setAttribute('cy', 370);
-        svgGlobe.setAttribute('r', nRadius);
-        svgGlobe.setAttribute('stroke', '#444');
-        svgGlobe.setAttribute('stroke-width', '1px');
-        svgGlobe.setAttribute('fill', 'none');
-        this.eSvg.appendChild(svgGlobe);
-        
-        var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-        svgPattern.setAttribute("id", "pattern-globe-" + stat);
-        svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
-        svgPattern.setAttribute("x", 265 * nX);
-        svgPattern.setAttribute("y", 270);
-        svgPattern.setAttribute("width", 200);
-        svgPattern.setAttribute("height", 200);
-
-        var svgFull = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        svgFull.setAttribute("width", 200);
-        svgFull.setAttribute("height", 200);
-        svgFull.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/globe-' + stat + '.png');
-        
-        var svgEmpty = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        svgEmpty.setAttribute("x", 0);
-        svgEmpty.setAttribute("y", -161);
-        svgEmpty.setAttribute("width", 200);
-        svgEmpty.setAttribute("height", 200);
-        svgEmpty.setAttribute('id', 'globe-' + stat);
-        svgEmpty.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/globe-empty.png');
-        
-
-        svgPattern.appendChild(svgFull);
-        svgPattern.appendChild(svgEmpty);
-        this.eDefs.appendChild(svgPattern);
-
-        svgGlobe.setAttribute("fill", "url(#pattern-globe-" + stat + ")");
-    };
-    Game.prototype.createExperience = function() {
-        var svgExperience = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        svgExperience.setAttribute("x", -285);
-        svgExperience.setAttribute("y", 375);
-        svgExperience.setAttribute("width", 570);
-        svgExperience.setAttribute("height", 10);
-        svgExperience.setAttribute('stroke', '#444');
-        svgExperience.setAttribute('stroke-width', '1px');
-        svgExperience.setAttribute("fill", 'url(#pattern-experience)');
-
-        var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-        svgPattern.setAttribute("id", 'pattern-experience');
-        svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
-        svgPattern.setAttribute("x", -310);
-        svgPattern.setAttribute("y", 0);
-        svgPattern.setAttribute("width", 600);
-        svgPattern.setAttribute("height", 10);
-
-        var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        svgImage.setAttribute("width", 600);
-        svgImage.setAttribute("height", 10);
-        svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/experience-full.png');
-        
-        var svgEmpty = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        svgEmpty.setAttribute("x", 15);
-        svgEmpty.setAttribute("y", 0);
-        svgEmpty.setAttribute("width", 600);
-        svgEmpty.setAttribute("height", 10);
-        svgEmpty.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/experience-empty.png');
-        svgEmpty.setAttribute("id", "experience-empty");
-        
-        svgPattern.appendChild(svgImage);
-        svgPattern.appendChild(svgEmpty);
-        this.eSvg.appendChild(svgExperience);
-        this.eDefs.appendChild(svgPattern);
-        
-    };
-    Game.prototype.createRange = function() {
-        var svgRange = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        svgRange.setAttribute('cx', this.board.center.x);
-        svgRange.setAttribute('cy', this.board.center.y);
-        svgRange.setAttribute('r', this.tower.range);
-        svgRange.setAttribute('stroke', 'green');
-        svgRange.setAttribute('stroke-width', '1px');
-        svgRange.setAttribute('fill', 'none');
-        svgRange.setAttribute('id', 'towerRange');
-        this.eSvg.appendChild(svgRange);  
-    };
     Game.prototype.createRuneFilters = function() {
-        for (var i = 0; i < 5; i++) {
-            var svgFilter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
-            svgFilter.setAttribute("id", "filter-" + i);
-            svgFilter.setAttribute("x", "0");
-            svgFilter.setAttribute("y", "0");
+        var svgFilter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+        svgFilter.setAttribute("id", "rune-filter");
+        svgFilter.setAttribute("x", "0");
+        svgFilter.setAttribute("y", "0");
 
-            var feComponentTransfer = document.createElementNS("http://www.w3.org/2000/svg", "feComponentTransfer");
+        var feComponentTransfer = document.createElementNS("http://www.w3.org/2000/svg", "feComponentTransfer");
 
-            var feFuncR = document.createElementNS("http://www.w3.org/2000/svg", "feFuncR");
-            feFuncR.setAttribute("id", "filter-feFuncR" + i);
-            feFuncR.setAttribute("type", "linear");
-            feFuncR.setAttribute("slope", "1");
+        var feFuncR = document.createElementNS("http://www.w3.org/2000/svg", "feFuncR");
+        feFuncR.setAttribute("id", "filter-feFuncR");
+        feFuncR.setAttribute("type", "linear");
+        feFuncR.setAttribute("slope", "1");
 
-            var feFuncG = document.createElementNS("http://www.w3.org/2000/svg", "feFuncG");
-            feFuncG.setAttribute("id", "filter-feFuncG" + i);
-            feFuncG.setAttribute("type", "linear");
-            feFuncG.setAttribute("slope", "1");
+        var feFuncG = document.createElementNS("http://www.w3.org/2000/svg", "feFuncG");
+        feFuncG.setAttribute("id", "filter-feFuncG");
+        feFuncG.setAttribute("type", "linear");
+        feFuncG.setAttribute("slope", "1");
 
-            var feFuncB  = document.createElementNS("http://www.w3.org/2000/svg", "feFuncB");
-            feFuncB.setAttribute("id", "filter-feFuncB" + i);
-            feFuncB .setAttribute("type", "linear");
-            feFuncB .setAttribute("slope", "1");
+        var feFuncB  = document.createElementNS("http://www.w3.org/2000/svg", "feFuncB");
+        feFuncB.setAttribute("id", "filter-feFuncB");
+        feFuncB .setAttribute("type", "linear");
+        feFuncB .setAttribute("slope", "1");
 
-            feComponentTransfer.appendChild(feFuncR);
-            feComponentTransfer.appendChild(feFuncG);
-            feComponentTransfer.appendChild(feFuncB);
+        feComponentTransfer.appendChild(feFuncR);
+        feComponentTransfer.appendChild(feFuncG);
+        feComponentTransfer.appendChild(feFuncB);
 
-            svgFilter.appendChild(feComponentTransfer);
+        svgFilter.appendChild(feComponentTransfer);
 
-            this.eDefs.appendChild(svgFilter);
-        }
+        this.eDefs.appendChild(svgFilter);
     };
     Game.prototype.createGaussianFilter = function() {
         var svgFilter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
@@ -712,160 +623,25 @@ var gameModule = (function() {
         this.eDefs.appendChild(svgFilter);
     };
     Game.prototype.startRuneFilters = function() {
-        var feFuncR0 = document.getElementById("filter-feFuncR0");
-        var feFuncG0 = document.getElementById("filter-feFuncG0");
-        var feFuncB0 = document.getElementById("filter-feFuncB0");
-        var feFuncR1 = document.getElementById("filter-feFuncR1");
-        var feFuncG1 = document.getElementById("filter-feFuncG1");
-        var feFuncB1 = document.getElementById("filter-feFuncB1");
-        var feFuncR2 = document.getElementById("filter-feFuncR2");
-        var feFuncG2 = document.getElementById("filter-feFuncG2");
-        var feFuncB2 = document.getElementById("filter-feFuncB2");
-        var feFuncR3 = document.getElementById("filter-feFuncR3");
-        var feFuncG3 = document.getElementById("filter-feFuncG3");
-        var feFuncB3 = document.getElementById("filter-feFuncB3");
-        var feFuncR4 = document.getElementById("filter-feFuncR4");
-        var feFuncG4 = document.getElementById("filter-feFuncG4");
-        var feFuncB4 = document.getElementById("filter-feFuncB4");
+        var feFuncR = document.getElementById("filter-feFuncR");
+        var feFuncG = document.getElementById("filter-feFuncG");
+        var feFuncB = document.getElementById("filter-feFuncB");
         
-        var nI0 = 1;
-        var nI1 = 1;
-        var nI2 = 1;
-        var nI3 = 1;
-        var nI4 = 1;
-        var nSign0 = -1;
-        var nSign1 = -1;
-        var nSign2 = -1;
-        var nSign3 = -1;
-        var nSign4 = -1;
+        var nI = 1;
+        var nSign = -1;
         this.interval = setInterval(function() {
-            if (nI0 >= 1.5) { nSign0 = -1; }
-            if (nI0 <= 0.5) { nSign0 = 1; }
-            if (nI1 >= 1.5) { nSign1 = -1; }
-            if (nI1 <= 0.5) { nSign1 = 1; }
-            if (nI2 >= 1.5) { nSign2 = -1; }
-            if (nI2 <= 0.5) { nSign2 = 1; }
-            if (nI3 >= 1.5) { nSign3 = -1; }
-            if (nI3 <= 0.5) { nSign3 = 1; }
-            if (nI4 >= 1.5) { nSign4 = -1; }
-            if (nI4 <= 0.5) { nSign4 = 1; }
+            if (nI >= 1.5) { nSign = -1; }
+            if (nI <= 0.6) { nSign = 1; }
 
-            nI0 += nSign0  * (0.08);
-            nI0 = Math.round(nI0 * 100) / 100;
-            feFuncR0.setAttribute("slope", parseFloat(nI0));
-            feFuncG0.setAttribute("slope", parseFloat(nI0));
-            feFuncB0.setAttribute("slope", parseFloat(nI0));
-            
-            nI1 += nSign1  * (0.10);
-            nI1 = Math.round(nI1 * 100) / 100;
-            feFuncR1.setAttribute("slope", parseFloat(nI1));
-            feFuncG1.setAttribute("slope", parseFloat(nI1));
-            feFuncB1.setAttribute("slope", parseFloat(nI1));
-            
-            nI2 += nSign2  * (0.12);
-            nI2 = Math.round(nI2 * 100) / 100;
-            feFuncR2.setAttribute("slope", parseFloat(nI2));
-            feFuncG2.setAttribute("slope", parseFloat(nI2));
-            feFuncB2.setAttribute("slope", parseFloat(nI2));
-            
-            nI3 += nSign3  * (0.14);
-            nI3 = Math.round(nI3 * 100) / 100;
-            feFuncR3.setAttribute("slope", parseFloat(nI3));
-            feFuncG3.setAttribute("slope", parseFloat(nI3));
-            feFuncB3.setAttribute("slope", parseFloat(nI3));
-            
-            nI4 += nSign4  * (0.16);
-            nI4 = Math.round(nI4 * 100) / 100;
-            feFuncR4.setAttribute("slope", parseFloat(nI4));
-            feFuncG4.setAttribute("slope", parseFloat(nI4));
-            feFuncB4.setAttribute("slope", parseFloat(nI4));
-        }, 100); 
+            nI += nSign  * (0.1);
+            nI = Math.round(nI * 100) / 100;
+            feFuncR.setAttribute("slope", parseFloat(nI));
+            feFuncG.setAttribute("slope", parseFloat(nI));
+            feFuncB.setAttribute("slope", parseFloat(nI));
+        }, 200); 
     };
     Game.prototype.stopRuneFilters = function() {
         clearInterval(this.interval);
-    };
-    Game.prototype.showRange = function() {
-        var svgRange = document.getElementById('towerRange');
-        svgRange.setAttribute('r', this.tower.range);
-    };
-    Game.prototype.showGlobe = function(stat) {
-        var nRadius = 70;
-        
-        switch(stat) {
-            case "health": var nAmount = this.player[stat]; break;
-            case "mana":
-                if (this.player[stat] > 200) {
-                    var nAmount = 100;
-                }
-                else {
-                    var nAmount = this.player[stat] / 2;
-                }
-            break;
-        }
-        var svgEmpty = document.getElementById('globe-' + stat);
-        var nOffset = getHeight(nRadius, nAmount);
-        svgEmpty.setAttribute("y", -(21 + nOffset));
-    };
-    Game.prototype.showExperience = function() {
-        var svgExperience = document.getElementById('experience-empty');
-        var nFraction = this.player.experience / this.player.maxExperience * 550;
-        svgExperience.setAttribute('x', 15 + nFraction);
-    };
-    Game.prototype.showText = function(text, id) {
-        var nWidth = 60;
-        var nHeight = 20;
-        var nOffset = 50;
-        switch (text) {
-            case "levelup":
-                var nMs = 1200;
-                var nScalar = 0.24;
-            break;
-            case "damage":
-                var nMs = 900;
-                var nScalar = 0.12;
-            break;
-            case "mana":
-                var nMs = 600;
-                var nScalar = 0.08;
-            break;
-        }
-        
-        var svgLevel = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        svgLevel.setAttribute("x", -nWidth / 2);
-        svgLevel.setAttribute("y", -nOffset);
-        svgLevel.setAttribute("width", nWidth);
-        svgLevel.setAttribute("height", nHeight);
-        svgLevel.setAttribute("fill", 'url(#pattern-' + text + '-' + id + ')');
-        
-        var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-        svgPattern.setAttribute("id", 'pattern-' + text + '-' + id);
-        svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
-        svgPattern.setAttribute("x", -nWidth / 2);
-        svgPattern.setAttribute("y", -nHeight / 2);
-        svgPattern.setAttribute("width", nWidth);
-        svgPattern.setAttribute("height", nHeight);
-        
-        var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        svgImage.setAttribute("width", nWidth);
-        svgImage.setAttribute("height", nHeight);
-        svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/text-' + text + '.png');
-  
-        svgPattern.appendChild(svgImage);
-        this.eSvg.appendChild(svgLevel);
-        this.eDefs.appendChild(svgPattern);
-        
-        var nY = 1;
-        var fInterval = setInterval(function() {
-            nY += nScalar;
-            svgLevel.setAttribute("transform", "scale( " + nY + " )");
-        }, 20);
-        
-        var me = this;
-        setTimeout(function() {
-            clearInterval(fInterval);
-            me.eSvg.removeChild(svgLevel);
-            me.eDefs.removeChild(svgPattern);
-        }, nMs);
     };
     Game.prototype.runeBuy = function(id, hex) {
         hex.rune = new Rune(id);
@@ -881,8 +657,8 @@ var gameModule = (function() {
         this.board.runeDraw(this.eDefs);
         this.board.setValues();
         this.setValues();
-        this.showRange();
-        this.showGlobe("mana");
+        this.board.rangeShow();
+        this.board.globeShow("mana");
         towerController.showAllStats();
         playerController.showStat("mana");
     };
@@ -911,8 +687,8 @@ var gameModule = (function() {
         this.board.runeDraw(this.eDefs);
         this.board.setValues();
         this.setValues();
-        this.showRange();
-        this.showGlobe("mana");
+        this.board.rangeShow();
+        this.board.globeShow("mana");
         playerController.showStat("mana");
         towerController.showAllStats();
     };
@@ -925,8 +701,8 @@ var gameModule = (function() {
         this.board.runeDraw(this.eDefs);
         this.board.setValues();
         this.setValues();
-        this.showRange();
-        this.showGlobe("mana");
+        this.board.rangeShow();
+        this.board.globeShow("mana");
         playerController.showStat("mana");
         towerController.showAllStats();
     };
@@ -960,7 +736,7 @@ var gameModule = (function() {
             this.enemyStartMoving(this.board.enemies[i], center);
         }
     };
-    Game.prototype.enemyStartMoving = function(enemy, to, distance) {
+    Game.prototype.enemyStartMoving = function(enemy, to) {
         var me = this;
         enemy.interval = setInterval(function() {
             me.enemyMove(enemy, to);
@@ -995,8 +771,8 @@ var gameModule = (function() {
             if (eEnemy) { this.eDefs.removeChild(eEnemy); }
             this.board.enemies.splice(this.board.enemies.indexOf(enemy), 1);
             enemy.element.remove();
-            this.showText("damage", this.player.health);
-            this.showGlobe("health");
+            this.board.textShow("damage", this.player.health);
+            this.board.globeShow("health");
             clearInterval(enemy.interval);
         }
 
@@ -1056,11 +832,11 @@ var gameModule = (function() {
             svgImage.setAttribute('class', "bonus");
             this.eSvg.appendChild(svgImage);
             
-            svgImage.addEventListener("click", collectBonus);
+            svgImage.addEventListener("click", bonusCollect);
             
             var me = this;
             setTimeout(function() {
-                svgImage.removeEventListener("click", collectBonus);
+                svgImage.removeEventListener("click", bonusCollect);
                 if (svgImage.parentNode === me.eSvg) {
                     me.eSvg.removeChild(svgImage);
                 }
@@ -1074,13 +850,13 @@ var gameModule = (function() {
             var idClosest = me.enemyClosest(-1, me.board.center, me.tower.range);
             if (idClosest >= 0) {
                 var oClosestPunt = new Punt(me.board.enemies[idClosest].center.x, me.board.enemies[idClosest].center.y);
-                me.showAttack(me.board.center, me.board.enemies[idClosest], Date.now());
+                me.playerShowAttack(me.board.center, me.board.enemies[idClosest], Date.now());
                 me.playerAttack(me.board.enemies[idClosest]);
                 if (me.tower.chainEffect === true) {
                     setTimeout(function() {
                         var idClosestChained = me.enemyFurthest(idClosest, oClosestPunt, me.tower.range / 2);
                         if (idClosestChained >= 0) {
-                            me.showAttack(oClosestPunt, me.board.enemies[idClosestChained].center, "poison");
+                            me.playerShowAttack(oClosestPunt, me.board.enemies[idClosestChained].center, "poison");
                             me.playerAttack(me.board.enemies[idClosestChained]);
                         }
                     }, 125);
@@ -1090,13 +866,13 @@ var gameModule = (function() {
                 var idFurthest = me.enemyFurthest(-1, me.board.center, me.tower.range);
                 if (idFurthest >= 0) {
                     var oFurthestPunt = new Punt(me.board.enemies[idFurthest].center.x, me.board.enemies[idFurthest].center.y);
-                    me.showAttack(me.board.center, me.board.enemies[idFurthest]);
+                    me.playerShowAttack(me.board.center, me.board.enemies[idFurthest]);
                     me.playerAttack(me.board.enemies[idFurthest]);
                     if (me.tower.chainEffect === true) {
                         setTimeout(function() {
                             var idFurthestChained = me.enemyClosest(idFurthest, oFurthestPunt, me.tower.range / 2);
                             if (idFurthestChained >= 0) {
-                                me.showAttack(oFurthestPunt, me.board.enemies[idFurthestChained].center, "arcane");
+                                me.playerShowAttack(oFurthestPunt, me.board.enemies[idFurthestChained].center, "arcane");
                                 me.playerAttack(me.board.enemies[idFurthestChained]);
                             } 
                         }, 125);
@@ -1123,8 +899,8 @@ var gameModule = (function() {
             if (this.player.experience >= this.player.maxExperience) {
                 this.player.levelUp();
             };
-            oGame.showExperience();
-            oGame.showGlobe("mana");
+            this.board.experienceShow();
+            this.board.globeShow("mana");
             playerController.showStat("kills");
             playerController.showStat("accuracy");
             playerController.showStat("mana");
@@ -1132,7 +908,7 @@ var gameModule = (function() {
 
         }
     };
-    Game.prototype.showAttack = function(from, enemy, when) {
+    Game.prototype.playerShowAttack = function(from, enemy, when) {
         var nRadius = 35;
         var nLength1 = 100;
         var nLength2 = 90;
@@ -1557,6 +1333,192 @@ var gameModule = (function() {
             if (eThisHex) { defs.removeChild(eThisHex); }
         }
     };
+    Board.prototype.globeCreate = function(stat) {
+        switch (stat) {
+            case "health": var nX = -1; break;
+            case "mana": var nX = 1; break;
+        }
+        var nRadius = 70;
+        var svgGlobe = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        svgGlobe.setAttribute('cx', 365 * nX);
+        svgGlobe.setAttribute('cy', 370);
+        svgGlobe.setAttribute('r', nRadius);
+        svgGlobe.setAttribute('stroke', '#444');
+        svgGlobe.setAttribute('stroke-width', '1px');
+        svgGlobe.setAttribute('fill', 'none');
+        oGame.eSvg.appendChild(svgGlobe);
+        
+        var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        svgPattern.setAttribute("id", "pattern-globe-" + stat);
+        svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
+        svgPattern.setAttribute("x", 265 * nX);
+        svgPattern.setAttribute("y", 270);
+        svgPattern.setAttribute("width", 200);
+        svgPattern.setAttribute("height", 200);
+
+        var svgFull = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        svgFull.setAttribute("width", 200);
+        svgFull.setAttribute("height", 200);
+        svgFull.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/globe-' + stat + '.png');
+        
+        var svgEmpty = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        svgEmpty.setAttribute("x", 0);
+        svgEmpty.setAttribute("y", -161);
+        svgEmpty.setAttribute("width", 200);
+        svgEmpty.setAttribute("height", 200);
+        svgEmpty.setAttribute('id', 'globe-' + stat);
+        svgEmpty.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/globe-empty.png');
+        
+
+        svgPattern.appendChild(svgFull);
+        svgPattern.appendChild(svgEmpty);
+        oGame.eDefs.appendChild(svgPattern);
+
+        svgGlobe.setAttribute("fill", "url(#pattern-globe-" + stat + ")");
+    };
+    Board.prototype.globeShow = function(stat) {
+        var nRadius = 70;
+        var nAmount;
+        switch(stat) {
+            case "health": nAmount = oGame.player[stat]; break;
+            case "mana":
+                if (oGame.player[stat] > 200) {
+                    nAmount = 100;
+                }
+                else {
+                    nAmount = oGame.player[stat] / 2;
+                }
+            break;
+        }
+        var svgEmpty = document.getElementById('globe-' + stat);
+        var nOffset = getHeight(nRadius, nAmount);
+        svgEmpty.setAttribute("y", -(21 + nOffset));
+    };
+    Board.prototype.experienceCreate = function() {
+        var svgExperience = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        svgExperience.setAttribute("x", -285);
+        svgExperience.setAttribute("y", 360);
+        svgExperience.setAttribute("width", 570);
+        svgExperience.setAttribute("height", 10);
+        svgExperience.setAttribute('stroke', '#444');
+        svgExperience.setAttribute('stroke-width', '1px');
+        svgExperience.setAttribute("fill", 'url(#pattern-experience)');
+
+        var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        svgPattern.setAttribute("id", 'pattern-experience');
+        svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
+        svgPattern.setAttribute("x", -310);
+        svgPattern.setAttribute("y", 0);
+        svgPattern.setAttribute("width", 600);
+        svgPattern.setAttribute("height", 10);
+
+        var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        svgImage.setAttribute("width", 600);
+        svgImage.setAttribute("height", 10);
+        svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/experience-full.png');
+        
+        var svgEmpty = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        svgEmpty.setAttribute("x", 15);
+        svgEmpty.setAttribute("y", 0);
+        svgEmpty.setAttribute("width", 600);
+        svgEmpty.setAttribute("height", 10);
+        svgEmpty.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/experience-empty.png');
+        svgEmpty.setAttribute("id", "experience-empty");
+        
+        svgPattern.appendChild(svgImage);
+        svgPattern.appendChild(svgEmpty);
+        oGame.eSvg.appendChild(svgExperience);
+        oGame.eDefs.appendChild(svgPattern);
+    };
+    Board.prototype.experienceShow = function() {
+        var svgExperience = document.getElementById('experience-empty');
+        var nFraction = oGame.player.experience / oGame.player.maxExperience * 550;
+        svgExperience.setAttribute('x', 15 + nFraction);
+    };
+    Board.prototype.rangeCreate = function() {
+        var svgRange = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        svgRange.setAttribute('cx', oGame.board.center.x);
+        svgRange.setAttribute('cy', oGame.board.center.y);
+        svgRange.setAttribute('r', oGame.tower.range);
+        svgRange.setAttribute('stroke', 'green');
+        svgRange.setAttribute('stroke-width', '1px');
+        svgRange.setAttribute('fill', 'none');
+        svgRange.setAttribute('id', 'towerRange');
+        oGame.eSvg.appendChild(svgRange);  
+    };
+    Board.prototype.rangeShow = function() {
+        var svgRange = document.getElementById('towerRange');
+        svgRange.setAttribute('r', oGame.tower.range);
+    };
+    Board.prototype.bonusBarCreate = function() {
+        for (var i = 1; i < 11; i++) {
+            var svgBonus = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            svgBonus.setAttribute("id", "bonus-slot-" + i);
+            svgBonus.setAttribute("class", "bonus-slot");
+            svgBonus.setAttribute("x", -250 + ((i - 1) * 50));
+            svgBonus.setAttribute("y", 370);
+            svgBonus.setAttribute("width", 50);
+            svgBonus.setAttribute("height", 50);
+            svgBonus.setAttribute('stroke', '#444');
+            svgBonus.setAttribute('stroke-width', '1px');
+            svgBonus.setAttribute('fill', 'transparent');
+            oGame.eSvg.appendChild(svgBonus);
+            
+            svgBonus.addEventListener("click", bonusUse);
+        }
+    };
+    Board.prototype.textShow = function(text, id) {
+        var nWidth = 60;
+        var nHeight = 20;
+        var nOffset = 50;
+        var nMs, nScalar;
+        switch (text) {
+            case "levelup":
+                nMs = 1200;
+                nScalar = 0.24;
+            break;
+            case "damage":
+                nMs = 900;
+                nScalar = 0.12;
+            break;
+        }
+        
+        var svgLevel = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        svgLevel.setAttribute("x", -nWidth / 2);
+        svgLevel.setAttribute("y", -nOffset);
+        svgLevel.setAttribute("width", nWidth);
+        svgLevel.setAttribute("height", nHeight);
+        svgLevel.setAttribute("fill", 'url(#pattern-' + text + '-' + id + ')');
+        
+        var svgPattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        svgPattern.setAttribute("id", 'pattern-' + text + '-' + id);
+        svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
+        svgPattern.setAttribute("x", -nWidth / 2);
+        svgPattern.setAttribute("y", -nHeight / 2);
+        svgPattern.setAttribute("width", nWidth);
+        svgPattern.setAttribute("height", nHeight);
+        
+        var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+        svgImage.setAttribute("width", nWidth);
+        svgImage.setAttribute("height", nHeight);
+        svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/text-' + text + '.png');
+  
+        svgPattern.appendChild(svgImage);
+        oGame.eSvg.appendChild(svgLevel);
+        oGame.eDefs.appendChild(svgPattern);
+        
+        var nY = 1;
+        var fInterval = setInterval(function() {
+            nY += nScalar;
+            svgLevel.setAttribute("transform", "scale( " + nY + " )");
+        }, 20);
+        
+        setTimeout(function() {
+            clearInterval(fInterval);
+            oGame.eSvg.removeChild(svgLevel);
+            oGame.eDefs.removeChild(svgPattern);
+        }, nMs);
+    };
 
     function Hex(id, xid, yid, center, side){
         this.modifier = 0;
@@ -1600,13 +1562,14 @@ var gameModule = (function() {
 
         var tier = this.rune.tier;
         if (this.towerConnected === false) { tier = 0; }
-        var nBlink = Math.round(Math.random() * 4);
 
         var iRune = document.createElementNS('http://www.w3.org/2000/svg', 'image');
         iRune.setAttribute("width", this.side * 3.6);
         iRune.setAttribute("height", this.side * 3.6);
         iRune.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/rune-' + this.rune.name + tier + '.png');
-        iRune.setAttribute("filter","url(#filter-" + nBlink + ")");
+        if (this.id !== oGame.board.tower) {
+            iRune.setAttribute("filter","url(#rune-filter)");
+        }
 
         this.pattern.appendChild(iRune);
 
@@ -1720,9 +1683,9 @@ var gameModule = (function() {
         oGame.setValues();
         towerController.showAllStats();
         playerController.showAllStats();
-        oGame.showExperience();
-        oGame.showGlobe("health");
-        oGame.showText("levelup", this.level);
+        oGame.board.experienceShow();
+        oGame.board.globeShow("health");
+        oGame.board.textShow("levelup", this.level);
     };
 
     function Wave(number) {
@@ -1765,6 +1728,10 @@ var gameModule = (function() {
         this.cd = 0;
         this.range = 0;
     };
+    function Bonus(id) {
+        this.type = oSettings.bonusTypes[id];
+        this.id = id;
+    }
 
     return {
         init: init
