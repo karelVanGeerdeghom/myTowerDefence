@@ -123,7 +123,7 @@ var gameModule = (function() {
     var oSettings =  {
         "size": 900,
         "radius": 4,
-        "side": 25,
+        "side": 27,
         "health": 100,
         "mana": 200,
         "range": 200,
@@ -253,13 +253,8 @@ var gameModule = (function() {
                 oGame.stopRuneFilters();
             }
         });
-        
-        document.onkeydown = function(event) {
-            event = event || window.event;
-            if (event.keyCode === 27) {
-                hexController.clearRadial();
-            }
-        };
+        keyBinds();
+
     };
     var buyRune = function() {
         var nId = parseInt(this.id.match(/\d+/)[0]);
@@ -304,11 +299,27 @@ var gameModule = (function() {
             oGame.eSvg.removeChild(eBonus);
         }
     };
-    var bonusUse = function() {
-        var nId = this.id.split('-')[2];
+    var bonusUse = function(bonus) {
+        var nId;
+        if (isNaN(bonus)) {
+            nId = this.id.split('-')[2];
+        }
+        else {
+            nId = bonus;
+        }
         oGame.player.attackBonus[nId] = true;
         oGame.player.attackBonuses[nId] -= 1;
         oGame.board.bonusShow();
+    };
+    var keyBinds = function() {
+        document.onkeydown = function(event) {
+            event = event || window.event;
+            if (event.keyCode === 27) { hexController.clearRadial(); }
+            if (event.keyCode === 49) { bonusUse(0); }
+            if (event.keyCode === 50) { bonusUse(1); }
+            if (event.keyCode === 51) { bonusUse(2); }
+            if (event.keyCode === 52) { bonusUse(3); }
+        };
     };
     
     function getDistance(from, to) {
@@ -735,11 +746,13 @@ var gameModule = (function() {
         towerController.showStat("dps");
     };
     Game.prototype.waveStart = function() {
-        var center = this.board.center;
+        for (var n = 0; n < 10; n++) {
+            this.player.attackBonus[n] = false;
+        }
         for (var i = 0; i < this.board.enemies.length; i ++) {
             this.eSvg.appendChild(this.board.enemies[i].element());
             this.eDefs.appendChild(this.board.enemies[i].pattern());
-            this.enemyStartMoving(this.board.enemies[i], center);
+            this.enemyStartMoving(this.board.enemies[i], this.board.center);
         }
     };
     Game.prototype.enemyStartMoving = function(enemy, to) {
@@ -830,10 +843,10 @@ var gameModule = (function() {
         var nId = Math.floor(Math.random() * 4);
         if (nChance >= 0.5) {
             var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-            svgImage.setAttribute('x', enemy.center.x - 25);
-            svgImage.setAttribute('y', enemy.center.y - 25);
-            svgImage.setAttribute('width', 50);
-            svgImage.setAttribute('height', 50);
+            svgImage.setAttribute('x', enemy.center.x - 30);
+            svgImage.setAttribute('y', enemy.center.y - 30);
+            svgImage.setAttribute('width', 60);
+            svgImage.setAttribute('height', 60);
             svgImage.setAttributeNS('http://www.w3.org/1999/xlink', 'href', 'images/bonus-' + nId + '.png');
             svgImage.setAttribute('id', 'bonus-' + enemy.id + '-' + nId);
             svgImage.setAttribute('class', "bonus");
@@ -917,6 +930,7 @@ var gameModule = (function() {
     };
     Game.prototype.playerShowAttack = function(from, enemy, when) {
         var nRadius = 35;
+        var nWidth = 4;
         var nLength1 = 100;
         var nLength2 = 90;
         var nLength3 = 80;
@@ -930,6 +944,7 @@ var gameModule = (function() {
         var nId = when;
         
         var svgCenterPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        svgCenterPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
         var sCenterPath = 'M' + parseFloat(from.x + nRadius) + ',' + from.y + ' L' + nDistance + ',' + 0 + '';
         svgCenterPath.setAttribute('d', sCenterPath);
         svgCenterPath.setAttribute('id', "svgCenterPath" + nId);
@@ -937,50 +952,50 @@ var gameModule = (function() {
         svgCenterPath.setAttribute('stroke', '#44FFFF');
         svgCenterPath.setAttribute('stroke-dasharray', nLength1 + ' 1000');
         svgCenterPath.setAttribute('stroke-dashoffset', nLength1);
-        svgCenterPath.setAttribute('stroke-width', '4px');
+        svgCenterPath.setAttribute('stroke-width', nWidth + 'px');
         svgCenterPath.setAttribute('fill', 'none');
-        svgCenterPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
         svgCenterPath.setAttribute("filter","url(#Gaussian)");
         this.eSvg.appendChild(svgCenterPath);
         Velocity(svgCenterPath, { "stroke-dashoffset": -nDistance }, { duration: 200 });
             
         if (this.player.attackBonus[0] === true) {
             var svgRightPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            svgRightPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             var sRightPath = 'M' + parseFloat(from.x + nRadius + 5) + ',' + parseFloat(from.y + nOffset1);
-            sRightPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 48;
+            sRightPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 24;
             sRightPath += ' ' + nDistance + ',' + parseFloat(from.y + nOffset1 / 4);
             svgRightPath.setAttribute('d', sRightPath);
             svgRightPath.setAttribute('id', "svgRightPath" + nId);
             svgRightPath.setAttribute('class', 'attackPath');
             svgRightPath.setAttribute('stroke', '#FF4444');
-            svgRightPath.setAttribute('stroke-width', '4px');
+            svgRightPath.setAttribute('stroke-width', nWidth + 'px');
             svgRightPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
             svgRightPath.setAttribute('stroke-dashoffset', nLength2);
             svgRightPath.setAttribute('fill', 'none');
-            svgRightPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgRightPath.setAttribute("filter","url(#Gaussian)");
             this.eSvg.appendChild(svgRightPath);
             Velocity(svgRightPath, { "stroke-dashoffset": -nDistance }, { duration: 250 });
 
             var svgLeftPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            svgLeftPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             var sLeftPath = 'M' + parseFloat(from.x + nRadius + 5) + ',' + parseFloat(from.y - nOffset1);
-            sLeftPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 48;
+            sLeftPath += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 24;
             sLeftPath += ' ' + nDistance + ',' + parseFloat(from.y - nOffset1 / 4);
             svgLeftPath.setAttribute('d', sLeftPath);
             svgLeftPath.setAttribute('id', "svgLeftPath" + nId);
             svgLeftPath.setAttribute('class', 'attackPath');
             svgLeftPath.setAttribute('stroke', '#FF4444');
-            svgLeftPath.setAttribute('stroke-width', '4px');
+            svgLeftPath.setAttribute('stroke-width', nWidth + 'px');
             svgLeftPath.setAttribute('stroke-dasharray', nLength2 + ' 1000');
             svgLeftPath.setAttribute('stroke-dashoffset', nLength2);
             svgRightPath.setAttribute('fill', 'none');
-            svgLeftPath.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgLeftPath.setAttribute("filter","url(#Gaussian)");
             this.eSvg.appendChild(svgLeftPath);
             Velocity(svgLeftPath, { "stroke-dashoffset": -nDistance }, { duration: 250 });
         }
         if (this.player.attackBonus[1] === true) {
             var svgRightCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            svgRightCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             var sRightCurve = 'M' + parseFloat(from.x + nRadius - 2) + ',' + parseFloat(from.y + nOffset2);
             sRightCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 12;
             sRightCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset2 / 4);
@@ -988,16 +1003,16 @@ var gameModule = (function() {
             svgRightCurve.setAttribute('id', "svgRightCurve" + nId);
             svgRightCurve.setAttribute('class', 'attackPath');
             svgRightCurve.setAttribute('stroke', '#44FF44');
-            svgRightCurve.setAttribute('stroke-width', '4px');
+            svgRightCurve.setAttribute('stroke-width', nWidth + 'px');
             svgRightCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
             svgRightCurve.setAttribute('stroke-dashoffset', nLength3);
             svgRightCurve.setAttribute('fill', 'none');
-            svgRightCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgRightCurve.setAttribute("filter","url(#Gaussian)");
             this.eSvg.appendChild(svgRightCurve);
             Velocity(svgRightCurve, { "stroke-dashoffset": -nDistance }, { duration: 225 });
             
             var svgLeftCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            svgLeftCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             var sLeftCurve = 'M' + parseFloat(from.x + nRadius - 2) + ',' + parseFloat(from.y - nOffset2);
             sLeftCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 12;
             sLeftCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset2 / 4);
@@ -1005,17 +1020,17 @@ var gameModule = (function() {
             svgLeftCurve.setAttribute('id', "svgLeftCurve" + nId);
             svgLeftCurve.setAttribute('class', 'attackPath');
             svgLeftCurve.setAttribute('stroke', '#44FF44');
-            svgLeftCurve.setAttribute('stroke-width', '4px');
+            svgLeftCurve.setAttribute('stroke-width', nWidth + 'px');
             svgLeftCurve.setAttribute('stroke-dasharray', nLength3 + ' 1000');
             svgLeftCurve.setAttribute('stroke-dashoffset', nLength3);
             svgLeftCurve.setAttribute('fill', 'none');
-            svgLeftCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgLeftCurve.setAttribute("filter","url(#Gaussian)");
             this.eSvg.appendChild(svgLeftCurve);
             Velocity(svgLeftCurve, { "stroke-dashoffset": -nDistance }, { duration: 225 });
         }
         if (this.player.attackBonus[2] === true) {
             var svgRightFarCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            svgRightFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             var sRightFarCurve = 'M' + parseFloat(from.x + nRadius - 4) + ',' + parseFloat(from.y + nOffset3);
             sRightFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',' + nDistance / 7;
             sRightFarCurve += ' ' + nDistance + ',' + parseFloat(from.y + nOffset3 / 4);
@@ -1023,16 +1038,16 @@ var gameModule = (function() {
             svgRightFarCurve.setAttribute('id', "svgRightFarCurve" + nId);
             svgRightFarCurve.setAttribute('class', 'attackPath');
             svgRightFarCurve.setAttribute('stroke', '#9933FF');
-            svgRightFarCurve.setAttribute('stroke-width', '4px');
+            svgRightFarCurve.setAttribute('stroke-width', nWidth + 'px');
             svgRightFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
             svgRightFarCurve.setAttribute('stroke-dashoffset', nLength4);
             svgRightFarCurve.setAttribute('fill', 'none');
-            svgRightFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgRightFarCurve.setAttribute("filter","url(#Gaussian)");
             this.eSvg.appendChild(svgRightFarCurve);
             Velocity(svgRightFarCurve, { "stroke-dashoffset": -nDistance }, { duration: 275 });
             
             var svgLeftFarCurve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            svgLeftFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             var sLeftFarCurve = 'M' + parseFloat(from.x + nRadius - 4) + ',' + parseFloat(from.y - nOffset3);
             sLeftFarCurve += ' Q' + parseFloat((from.y + nDistance) / 7) + ',-' + nDistance / 7;
             sLeftFarCurve += ' ' + nDistance + ',' + parseFloat(from.y - nOffset3 / 4);
@@ -1040,17 +1055,17 @@ var gameModule = (function() {
             svgLeftFarCurve.setAttribute('id', "svgLeftFarCurve" + nId);
             svgLeftFarCurve.setAttribute('class', 'attackPath');
             svgLeftFarCurve.setAttribute('stroke', '#9933FF');
-            svgLeftFarCurve.setAttribute('stroke-width', '4px');
+            svgLeftFarCurve.setAttribute('stroke-width', nWidth + 'px');
             svgLeftFarCurve.setAttribute('stroke-dasharray', nLength4 + ' 1000');
             svgLeftFarCurve.setAttribute('stroke-dashoffset', nLength4);
             svgLeftFarCurve.setAttribute('fill', 'none');
-            svgLeftFarCurve.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgLeftFarCurve.setAttribute("filter","url(#Gaussian)");
             this.eSvg.appendChild(svgLeftFarCurve);
             Velocity(svgLeftFarCurve, { "stroke-dashoffset": -nDistance }, { duration: 275 });
         }
         if (this.player.attackBonus[3] === true) {
             var svgRightSine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            svgRightSine.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             var sRightSine = 'M' + parseFloat(from.x + nRadius) + ',' + from.y;
             sRightSine += ' Q' + parseFloat(from.x + nRadius + nDistance * 0.125) + ',' + parseFloat(from.y + nDistance * 0.125);
             sRightSine += ' ' + parseFloat(from.x + nRadius + nDistance * 0.25) + ',' + from.y;
@@ -1059,17 +1074,17 @@ var gameModule = (function() {
             svgRightSine.setAttribute('d', sRightSine);
             svgRightSine.setAttribute('id', "svgRightSine" + nId);
             svgRightSine.setAttribute('stroke', 'white');
-            svgRightSine.setAttribute('stroke-width', '4px');
+            svgRightSine.setAttribute('stroke-width', nWidth + 'px');
             svgRightSine.setAttribute('stroke-dasharray', nLength5 + ' 1500');
             svgRightSine.setAttribute('stroke-dashoffset', nLength5);
             svgRightSine.setAttribute('fill', 'none');
-            svgRightSine.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgRightSine.setAttribute("filter","url(#Gaussian)");
             this.eSvg.appendChild(svgRightSine);
             var nSineLength = svgRightSine.getTotalLength();
             Velocity(svgRightSine, { "stroke-dashoffset": -nSineLength }, { duration: 250 });
 
             var svgLeftSine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            svgLeftSine.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             var sLeftSine = 'M' + parseFloat(from.x + nRadius) + ',' + from.y;
             sLeftSine += ' Q' + parseFloat(from.x + nRadius + nDistance * 0.125) + ',-' + parseFloat(from.y + nDistance * 0.125);
             sLeftSine += ' ' + parseFloat(from.x + nRadius + nDistance * 0.25) + ',' + from.y;
@@ -1078,11 +1093,10 @@ var gameModule = (function() {
             svgLeftSine.setAttribute('d', sLeftSine);
             svgLeftSine.setAttribute('id', "svgLeftSine" + nId);
             svgLeftSine.setAttribute('stroke', 'white');
-            svgLeftSine.setAttribute('stroke-width', '4px');
+            svgLeftSine.setAttribute('stroke-width', nWidth + 'px');
             svgLeftSine.setAttribute('stroke-dasharray', nLength5 + ' 1500');
             svgLeftSine.setAttribute('stroke-dashoffset', nLength5);
             svgLeftSine.setAttribute('fill', 'none');
-            svgLeftSine.setAttribute('transform', 'rotate(' + angleDegrees + ')');
             svgLeftSine.setAttribute("filter","url(#Gaussian)");
             this.eSvg.appendChild(svgLeftSine);
             Velocity(svgLeftSine, { "stroke-dashoffset": -nSineLength }, { duration: 250 });
@@ -1117,7 +1131,7 @@ var gameModule = (function() {
             svgPattern.setAttribute("id", "bonus-pattern-" + i);
             svgPattern.setAttribute("patternUnits", "userSpaceOnUse");
             svgPattern.setAttribute("x", 0);
-            svgPattern.setAttribute("y", 370);
+            svgPattern.setAttribute("y", 390);
             svgPattern.setAttribute("width", 50);
             svgPattern.setAttribute("height", 50);
 
@@ -1401,7 +1415,7 @@ var gameModule = (function() {
     Board.prototype.experienceCreate = function() {
         var svgExperience = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
         svgExperience.setAttribute("x", -285);
-        svgExperience.setAttribute("y", 360);
+        svgExperience.setAttribute("y", 380);
         svgExperience.setAttribute("width", 570);
         svgExperience.setAttribute("height", 10);
         svgExperience.setAttribute('stroke', '#444');
@@ -1460,7 +1474,7 @@ var gameModule = (function() {
             svgBonus.setAttribute("id", "bonus-slot-" + i);
             svgBonus.setAttribute("class", "bonus-slot");
             svgBonus.setAttribute("x", -255 + (i * 50));
-            svgBonus.setAttribute("y", 370);
+            svgBonus.setAttribute("y", 390);
             svgBonus.setAttribute("width", 50);
             svgBonus.setAttribute("height", 50);
             svgBonus.setAttribute('stroke', '#444');
@@ -1470,7 +1484,7 @@ var gameModule = (function() {
             
             var svgNumber = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             svgNumber.setAttribute('x', -250 + (i * 50));
-            svgNumber.setAttribute('y', 415);
+            svgNumber.setAttribute('y', 435);
             svgNumber.setAttribute('font-size', '12px');
             svgNumber.setAttribute('stroke', 'none');
             svgNumber.setAttribute('fill', 'white');
