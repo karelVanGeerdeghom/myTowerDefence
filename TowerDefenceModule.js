@@ -842,6 +842,15 @@ var gameModule = (function() {
         var nChance = Math.random();
         var nId = Math.floor(Math.random() * 4);
         if (nChance >= 0.5) {
+            var svgAnimatePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var sAnimatePath = 'M 0,0';
+            sAnimatePath += ' m -' + 6 + ',0';
+            sAnimatePath += ' a ' + 6 + ',' + 6 + ' 0 ' + 1 + ',0 ' + 2 * 6 + ',0';
+            sAnimatePath += ' a ' + 6 + ',' + 6 + ' 0 ' + 1 + ',0 -' + 2 * 6 + ',0';
+            svgAnimatePath.setAttribute('d', sAnimatePath);
+            svgAnimatePath.setAttribute('id', 'path-' + enemy.id + '-' + nId);
+            this.eSvg.appendChild(svgAnimatePath);
+            
             var svgImage = document.createElementNS('http://www.w3.org/2000/svg', 'image');
             svgImage.setAttribute('x', enemy.center.x - 30);
             svgImage.setAttribute('y', enemy.center.y - 30);
@@ -852,6 +861,17 @@ var gameModule = (function() {
             svgImage.setAttribute('class', "bonus");
             this.eSvg.appendChild(svgImage);
             
+            var svgAnimate = document.createElementNS('http://www.w3.org/2000/svg', 'animateMotion');
+            svgAnimate.setAttribute('begin', this.eSvg.getCurrentTime());
+            svgAnimate.setAttribute('dur', '1.5s');
+            svgAnimate.setAttribute('repeatCount', 'indefinite');
+            
+            var svgMpath = document.createElementNS('http://www.w3.org/2000/svg', 'mpath');
+            svgMpath.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#path-' + enemy.id + '-' + nId);
+            
+            svgImage.appendChild(svgAnimate);
+            svgAnimate.appendChild(svgMpath);
+            
             svgImage.addEventListener("click", bonusCollect);
             
             var me = this;
@@ -860,6 +880,7 @@ var gameModule = (function() {
                 if (svgImage.parentNode === me.eSvg) {
                     me.eSvg.removeChild(svgImage);
                 }
+                me.eSvg.removeChild(svgAnimatePath);
             }, 1500);
         }
     };
