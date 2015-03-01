@@ -231,9 +231,6 @@ var gameModule = (function() {
                         hexController.clearRadial();
                         hexController.createRadial(oGame.board.hexes[this.id]);
                     }
-                    else {
-                        hexController.clearRadial();
-                    }
                 }
             });
         }
@@ -389,6 +386,8 @@ var gameModule = (function() {
         var sSetting = "hasRune";
         var me = this;
         oGame.radial = "open";
+        var svgHex = document.getElementById(hex.id);
+        svgHex.setAttribute('stroke', 'green');
 
         for (var rune in this.view['buttons']) {
             if (!hex.rune) { sSetting = "noRune"; }
@@ -488,6 +487,10 @@ var gameModule = (function() {
     };
     Controller.prototype.clearRadial = function() {
         oGame.radial = "closed";
+        for (var i = 0; i < oGame.board.hexes.length; i++) {
+            var svgHex = document.getElementById(oGame.board.hexes[i].id);
+            svgHex.setAttribute('stroke', '#444');
+        }
         var me = this;
         for (var i = 0; i < 11; i++) {
             var ePattern = document.getElementById('button-pattern-' + i);
@@ -563,13 +566,13 @@ var gameModule = (function() {
         var cc = this.player.cc + this.board.cc;
         var cd = this.player.cd + this.board.cd;
         var totalDamage = dam * (((cc / 100) * ((100 + cd) / 100)) + ((100 - cc) / 100));
-        this.tower.dam = Math.round(totalDamage * 100) / 100;
+        this.tower.dam = Math.round(dam * 100) / 100;
         this.tower.as =  Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100;
         this.tower.ms = Math.round(1000 / this.tower.as);
         this.tower.range = this.player.range * ((100 + this.board.range) / 100);
         this.tower.cc = Math.round((this.player.cc + this.board.cc) * 100) / 100;
         this.tower.cd = Math.round((this.player.cd + this.board.cd) * 100) / 100;
-        this.tower.dps = Math.round(this.tower.dam * (Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100) * 100) / 100;
+        this.tower.dps = Math.round(totalDamage * (Math.round(this.player.as * ((100 + this.board.as) / 100) * 100) / 100) * 100) / 100;
         this.tower.chain = this.board.chain;
         this.tower.chainEffect = this.board.chainEffect;
         this.tower.split = this.board.split;
@@ -727,11 +730,7 @@ var gameModule = (function() {
         this.board.enemies = [];
         this.tower.wave += 1;
         this.wave = new Wave(this.tower.wave);
-        if (this.tower.wave > 10) {
-            this.tower.accuracy = this.player.accuracy;
-            this.board.setValues();
-            this.setValues();
-        }
+        this.tower.accuracy = this.player.accuracy;
         for (var i = 0; i < this.wave.number; i++) {
             var randomAngle = Math.random() * 2 * Math.PI;
             var sine = Math.sin(randomAngle);
@@ -780,10 +779,8 @@ var gameModule = (function() {
         if (getDistance(enemy.center, to) < 50 && enemy.alive) {
             this.player.health -= enemy.damage;
             playerController.showStat("health");
-            if (this.tower.wave > 10) {
-                this.player.misses += 1;
-                playerController.showStat("misses");
-            }
+            this.player.misses += 1;
+            playerController.showStat("misses");
 
             delete enemy["pattern"];
             var eEnemy = document.getElementById('enemy' + enemy.id);
@@ -928,13 +925,14 @@ var gameModule = (function() {
         }, this.tower.ms);
     };
     Game.prototype.playerAttack = function(enemy) {
-        enemy.health -= this.tower.dam * this.tower.accuracy;
+        var nRand = Math.random();
+        var nDam = this.tower.dam;
+        if (nRand <= this.tower.cc * 0.01) { nDam = this.tower.dam * (this.tower.cd + 100) * 0.01; }
+        enemy.health -= nDam;
         if (enemy.health <= 0) {
             this.enemyDeath(enemy);
-            if (this.tower.wave > 10) {
-                this.player.kills += 1;
-                this.player.accuracy = this.player.kills / this.player.total;
-            }
+            this.player.kills += 1;
+            this.player.accuracy = this.player.kills / this.player.total;
             this.player.mana += enemy.mana;
             this.player.experience += enemy.experience;
             if (this.player.experience >= this.player.maxExperience) {
@@ -1587,7 +1585,9 @@ var gameModule = (function() {
         this.modifier = 0;
         this.center = center;
         this.side = side;
+        this.sideS = side - 1;
         this.height = Math.sqrt(3 * this.side * this.side);
+        this.heightS = Math.sqrt(3 * this.sideS * this.sideS);
         this.id = id;
         this.xid = xid;
         this.yid = yid;
@@ -1597,12 +1597,12 @@ var gameModule = (function() {
     };
     Hex.prototype.element = function() {
         this.points = "";
-        this.points += String(this.center.x) + "," + String(this.center.y - 2 * this.side) + " ";
-        this.points += String(this.center.x - this.height) + "," + String(this.center.y - this.side) + " ";
-        this.points += String(this.center.x - this.height) + "," + String(this.center.y + this.side) + " ";
-        this.points += String(this.center.x) + "," + String(this.center.y + 2 * this.side) + " ";
-        this.points += String(this.center.x + this.height) + "," + String(this.center.y + this.side) + " ";
-        this.points += String(this.center.x + this.height) + "," + String(this.center.y - this.side);
+        this.points += String(this.center.x) + "," + String(this.center.y - 2 * this.sideS) + " ";
+        this.points += String(this.center.x - this.heightS) + "," + String(this.center.y - this.sideS) + " ";
+        this.points += String(this.center.x - this.heightS) + "," + String(this.center.y + this.sideS) + " ";
+        this.points += String(this.center.x) + "," + String(this.center.y + 2 * this.sideS) + " ";
+        this.points += String(this.center.x + this.heightS) + "," + String(this.center.y + this.sideS) + " ";
+        this.points += String(this.center.x + this.heightS) + "," + String(this.center.y - this.sideS);
 
         this.element = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
         this.element.setAttribute('points', this.points);
@@ -1610,7 +1610,7 @@ var gameModule = (function() {
         this.element.setAttribute('stroke-width', '1px');
         this.element.setAttribute('fill', 'transparent');
         this.element.setAttribute('id', this.id);
-        this.element.setAttribute('class', 'hex');
+        this.element.setAttribute('cursor', 'pointer');
 
         return this.element;
     };
@@ -1721,7 +1721,7 @@ var gameModule = (function() {
         this.kills = 0;
         this.misses = 0;
         this.total = 0;
-        this.accuracy = 1;
+        this.accuracy = 0;
         this.maxExperience = 100 + (this.level - 1) * 10;
         this.skillPoints = 0;
         this.health = oSettings.health;
@@ -1759,10 +1759,8 @@ var gameModule = (function() {
         this.number = this.factor;
         this.health = this.parameter / this.factor;
         this.speed = oSettings.enemySpeed;
-        if (this.id > 10) {
-            oGame.player.total += this.number;
-            playerController.showStat("total");
-        }
+        oGame.player.total += this.number;
+        playerController.showStat("total");
     };
     function Skill() {
         this.dam = oSettings.skillDam;
@@ -1775,7 +1773,7 @@ var gameModule = (function() {
     };
     function Tower() {
         this.wave = 0;
-        this.accuracy = 1;
+        this.accuracy = 0;
     };
     function Punt(x, y) {
         this.x = x;
